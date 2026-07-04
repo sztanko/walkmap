@@ -52,6 +52,9 @@ enum Cmd {
     },
     /// Regenerate web/data/manifest.json from config + data/out
     Manifest,
+    /// Count candidate features for EVERY catalogue type in a city —
+    /// research input for choosing which groups make sense there
+    Analyze { city: String },
 }
 
 fn find_root(start: &Path) -> Result<PathBuf> {
@@ -112,8 +115,87 @@ fn main() -> Result<()> {
             )?;
             eprintln!("wrote web/data/manifest.json");
         }
+        Cmd::Analyze { city } => {
+            let city = cities
+                .iter()
+                .find(|c| c.id == city)
+                .with_context(|| format!("unknown city '{city}'"))?;
+            analyze_city(&root, city, &catalogue)?;
+        }
     }
     Ok(())
+}
+
+/// Extract every catalogue type (with the city's variants) and report raw
+/// counts, grouped site counts, and the median nearest-neighbour spacing —
+/// the numbers that say whether a type makes a *nice* partition here.
+fn analyze_city(root: &Path, city: &config::City, catalogue: &[config::FeatureType]) -> Result<()> {
+    let mut all = city.clone();
+    all.types = catalogue.iter().map(|t| t.id.clone()).collect();
+    let types = config::resolve_types(&all, &catalogue.to_vec())?;
+
+    let pbf_dir = root.join("data/pbf");
+    let work = root.join("data/work").join(&city.id);
+    std::fs::create_dir_all(&pbf_dir)?;
+    std::fs::create_dir_all(&work)?;
+    let pbf = pbf_dir.join(city.pbf_url.rsplit('/').next().unwrap());
+    download_pbf(&city.pbf_url, &pbf)?;
+    let cache = work.join(format!("extract_{:016x}.bin", config::types_hash(&types)));
+    let data = match load_cache::<osm::CityData>(&cache, |_| true) {
+        Some(d) => d,
+        None => {
+            eprintln!("[{}] extracting (all catalogue types)…", city.id);
+            let d = osm::extract(&pbf, city, &types)?;
+            store_cache(&cache, &d)?;
+            d
+        }
+    };
+
+    println!("\n{}: candidate feature groups", city.name);
+    println!("{:<18} {:>6} {:>7} {:>10}   verdict", "type", "raw", "sites", "median-NN");
+    for (i, t) in types.iter().enumerate() {
+        let groups = group::group_features(&data.features[i]);
+        let nn = median_nn_m(&groups);
+        let verdict = if groups.len() < 6 {
+            "too few — skip"
+        } else if groups.len() < 15 {
+            "marginal"
+        } else {
+            "good"
+        };
+        println!(
+            "{:<18} {:>6} {:>7} {:>9}m   {} {}",
+            t.id,
+            data.features[i].len(),
+            groups.len(),
+            nn.map(|d| format!("{:.0}", d)).unwrap_or_else(|| "—".into()),
+            verdict,
+            if city.types.contains(&t.id) { "(configured)" } else { "" },
+        );
+    }
+    Ok(())
+}
+
+fn median_nn_m(groups: &[group::SiteGroup]) -> Option<f64> {
+    if groups.len() < 2 {
+        return None;
+    }
+    let lls: Vec<[f64; 2]> = groups.iter().map(|g| g.ll).collect();
+    let mut ds: Vec<f64> = lls
+        .par_iter()
+        .enumerate()
+        .map(|(i, g)| {
+            let mut best = f64::MAX;
+            for (j, o) in lls.iter().enumerate() {
+                if i != j {
+                    best = best.min(weights::haversine_m(*g, *o));
+                }
+            }
+            best
+        })
+        .collect();
+    ds.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    ds.get(ds.len() / 2).copied()
 }
 
 fn download_pbf(url: &str, dest: &Path) -> Result<()> {

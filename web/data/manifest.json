@@ -21,13 +21,11 @@
         "supermarket",
         "grocery",
         "bakery",
-        "market",
         "cafe",
         "townhall",
         "post_office",
         "pharmacy",
         "doctors",
-        "school",
         "playground",
         "bus_stop"
       ]
@@ -59,7 +57,6 @@
         "post_office",
         "pharmacy",
         "doctors",
-        "school",
         "playground",
         "bus_stop"
       ]
@@ -92,7 +89,6 @@
         "post_office",
         "pharmacy",
         "doctors",
-        "school",
         "playground",
         "bus_stop",
         "rail_station",
@@ -129,6 +125,10 @@
       "name": "Pubs"
     },
     {
+      "id": "greggs",
+      "name": "Greggs"
+    },
+    {
       "id": "townhall",
       "name": "Town halls"
     },
@@ -145,8 +145,12 @@
       "name": "Doctors"
     },
     {
-      "id": "school",
-      "name": "Schools"
+      "id": "primary_school",
+      "name": "Primary schools"
+    },
+    {
+      "id": "secondary_school",
+      "name": "Secondary schools"
     },
     {
       "id": "playground",
@@ -155,6 +159,10 @@
     {
       "id": "bus_stop",
       "name": "Bus stops"
+    },
+    {
+      "id": "station",
+      "name": "Rail & metro stations"
     },
     {
       "id": "rail_station",

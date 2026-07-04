@@ -56,6 +56,16 @@
   name: Pubs
   match: { key: amenity, in: [pub, biergarten] }
 
+# for fun: the Greggs shop network
+- id: greggs
+  name: Greggs
+  match:
+    all:
+      - { any: [ { key: shop, exists: true }, { key: amenity, exists: true } ] }
+      - any:
+          - { key: brand, in: [Greggs] }
+          - { key: name, contains: [greggs] }
+
 # ---- civic ---------------------------------------------------------------
 
 - id: townhall
@@ -80,12 +90,27 @@
       - { key: amenity, in: [doctors, clinic] }
       - { key: healthcare, in: [doctor, clinic] }
 
-- id: school
-  name: Schools
+# comparing primary with secondary schools is meaningless — separate groups
+# (tagging is UK-tuned: `school=` values + name heuristics)
+- id: primary_school
+  name: Primary schools
   match:
     all:
       - { key: amenity, in: [school] }
-      - not: { key: school, in: [driving] }
+      - any:
+          - { key: school, contains: [primary, infant, junior, first] }
+          - { key: name, contains: [primary, infant, junior] }
+          - { key: "isced:level", in: ["1", "0-1", "0;1", "1;2"] }
+
+- id: secondary_school
+  name: Secondary schools
+  match:
+    all:
+      - { key: amenity, in: [school] }
+      - any:
+          - { key: school, contains: [secondary, high, senior] }
+          - { key: name, contains: [secondary, "high school", "sixth form"] }
+          - { key: "isced:level", in: ["2", "3", "2-3", "2;3", "3;4"] }
 
 - id: playground
   name: Playgrounds
@@ -96,6 +121,15 @@
 - id: bus_stop
   name: Bus stops
   match: { key: highway, in: [bus_stop] }
+
+# rail + metro combined — the sensible "station" group for cities where
+# splitting heavy rail from underground is meaningless to residents
+- id: station
+  name: Rail & metro stations
+  match:
+    all:
+      - { key: railway, in: [station, halt] }
+      - not: { key: station, in: [monorail, funicular, miniature] }
 
 - id: rail_station
   name: Rail stations

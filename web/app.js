@@ -151,7 +151,7 @@ function addData() {
       source: "walkpath",
       filter: ["==", "$type", "LineString"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "rgba(20,24,40,0.55)", "line-width": 2.8 },
+      paint: { "line-color": "rgba(255,255,255,0.9)", "line-width": 6, "line-blur": 3 },
     },
     before
   );
@@ -162,7 +162,7 @@ function addData() {
       source: "walkpath",
       filter: ["==", "$type", "LineString"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#ffffff", "line-width": 1.2 },
+      paint: { "line-color": "#14182b", "line-width": 1.6 },
     },
     before
   );
@@ -367,11 +367,20 @@ function clearPath() {
   map.getSource("walkpath")?.setData(EMPTY);
 }
 
+// tracing is cheap (a few hundred array hops + one setData), so a leading
+// 40ms throttle keeps the path glued to the cursor
 let hoverTimer = null;
+let lastTrace = 0;
 map.on("mousemove", (e) => {
   if (!els.pathToggle.checked) return;
-  clearTimeout(hoverTimer);
-  hoverTimer = setTimeout(() => showPath(e.lngLat), 60);
+  const now = performance.now();
+  if (now - lastTrace > 40) {
+    lastTrace = now;
+    showPath(e.lngLat);
+  } else {
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => showPath(e.lngLat), 40);
+  }
 });
 map.getCanvas()?.addEventListener?.("mouseleave", clearPath);
 els.pathToggle?.addEventListener("change", () => {
