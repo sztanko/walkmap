@@ -442,6 +442,21 @@ fn run_city(
         }
     }
 
+    // drop outputs of types no longer configured for this city
+    for e in std::fs::read_dir(&out)? {
+        let p = e?.path();
+        let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        if let Some(tid) = name
+            .strip_suffix(".pmtiles")
+            .or_else(|| name.strip_suffix(".sites.json"))
+            .or_else(|| name.strip_suffix(".dirs.gz"))
+        {
+            if !city.types.iter().any(|t| t == tid) {
+                eprintln!("[{}] removing stale output {}", city.id, name);
+                let _ = std::fs::remove_file(p);
+            }
+        }
+    }
     output::write_city_meta(&out.join("meta.json"), city, g.bbox(), &pg)?;
     eprintln!("[{}] done in {:.0}s", city.id, t0.elapsed().as_secs_f64());
     Ok(())

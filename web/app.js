@@ -81,6 +81,7 @@ const LAYERS = [
   "sites-label",
   "walkpath-casing",
   "walkpath-line",
+  "walkpath-arrows",
   "walkpath-end",
 ];
 
@@ -150,7 +151,7 @@ function addData() {
       source: "walkpath",
       filter: ["==", "$type", "LineString"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "rgba(20,24,40,0.75)", "line-width": 5 },
+      paint: { "line-color": "rgba(20,24,40,0.55)", "line-width": 2.8 },
     },
     before
   );
@@ -161,20 +162,42 @@ function addData() {
       source: "walkpath",
       filter: ["==", "$type", "LineString"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#ffffff", "line-width": 2 },
+      paint: { "line-color": "#ffffff", "line-width": 1.2 },
     },
     before
   );
+  map.addLayer({
+    id: "walkpath-arrows",
+    type: "symbol",
+    source: "walkpath",
+    filter: ["==", "$type", "LineString"],
+    layout: {
+      "symbol-placement": "line",
+      "symbol-spacing": 55,
+      "text-field": ">",
+      "text-size": 11,
+      "text-font": ["Noto Sans Bold"],
+      "text-keep-upright": false,
+      "text-rotation-alignment": "map",
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+    },
+    paint: {
+      "text-color": "#1d2233",
+      "text-halo-color": "rgba(255,255,255,0.9)",
+      "text-halo-width": 1,
+    },
+  });
   map.addLayer({
     id: "walkpath-end",
     type: "circle",
     source: "walkpath",
     filter: ["==", "$type", "Point"],
     paint: {
-      "circle-radius": 5,
+      "circle-radius": 4,
       "circle-color": "#1d2233",
       "circle-stroke-color": "#fff",
-      "circle-stroke-width": 2,
+      "circle-stroke-width": 1.5,
     },
   });
 
