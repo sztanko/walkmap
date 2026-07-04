@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>walkmap — cities carved by walking time</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Cities partitioned into catchment areas by walking time to the nearest pub, supermarket, bus stop and more — a network Voronoi diagram over the OSM walking graph.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚶</text></svg>">
+</head>
+<body>
+  <div id="map"></div>
+
+  <header id="topbar">
+    <div class="brand">walk<span>map</span></div>
+    <select id="city" title="City"></select>
+    <select id="ftype" title="Feature type"></select>
+    <div class="search">
+      <input id="q" type="search" placeholder="Search places…" autocomplete="off" spellcheck="false">
+      <div id="results" hidden></div>
+    </div>
+  </header>
+
+  <aside id="panel">
+    <div class="modes" role="tablist">
+      <button id="mode-buildings" class="on" role="tab">Buildings</button>
+      <button id="mode-areas" role="tab">Areas</button>
+    </div>
+    <label class="opacity">
+      <span>Opacity</span>
+      <input id="opacity" type="range" min="10" max="100" value="80">
+    </label>
+    <div id="legend">
+      <div class="legend-buildings">
+        <div class="ramp"></div>
+        <div class="ramp-labels"><span>0 min</span><span>15</span><span>30+</span></div>
+        <p>Each hue is one catchment; darker = longer walk to its <span class="tname">feature</span>.</p>
+      </div>
+      <div class="legend-areas" hidden>
+        <p>Each colour is the area closest — by walking time, uphill counted — to one <span class="tname">feature</span>.</p>
+      </div>
+    </div>
+    <details id="about">
+      <summary>About</summary>
+      <p>A network Voronoi diagram over the OpenStreetMap walking graph.
+      Distance metric: walking time via Tobler's hiking function on a directed
+      graph (Copernicus GLO-30 elevation), so uphill ≠ downhill.</p>
+      <p><a href="https://github.com/sztanko/walkmap" target="_blank" rel="noopener">Source on GitHub</a></p>
+    </details>
+  </aside>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
