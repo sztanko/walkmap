@@ -48,10 +48,16 @@ git -C "$STAGE" commit -q -m "Publish $CITY tiles $(date -u +%Y-%m-%d)"
 git -C "$STAGE" remote add origin "git@github.com:$OWNER/$REPO.git"
 git -C "$STAGE" push -q -f origin main
 
-# enable branch-based Pages (idempotent)
-gh api -X POST "repos/$OWNER/$REPO/pages" \
-  -f "source[branch]=main" -f "source[path]=/" >/dev/null 2>&1 \
-  || gh api -X PUT "repos/$OWNER/$REPO/pages" \
-       -f "source[branch]=main" -f "source[path]=/" >/dev/null 2>&1 || true
+# enable branch-based Pages (idempotent; retried — enabling right after repo
+# creation can race and 404)
+for i in 1 2 3 4 5; do
+  if gh api "repos/$OWNER/$REPO/pages" >/dev/null 2>&1; then
+    break
+  fi
+  gh api -X POST "repos/$OWNER/$REPO/pages" \
+    -f "source[branch]=main" -f "source[path]=/" >/dev/null 2>&1 || sleep 5
+done
+gh api "repos/$OWNER/$REPO/pages" --jq '.status' >/dev/null \
+  || { echo "ERROR: Pages not enabled on $REPO"; exit 1; }
 
 echo "published: https://$OWNER.github.io/$REPO/"
