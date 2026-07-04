@@ -1,0 +1,111 @@
+{
+  "cities": [
+    {
+      "bbox": [
+        -17.02,
+        32.59998,
+        -16.84999,
+        32.7
+      ],
+      "id": "funchal",
+      "name": "Funchal",
+      "types": [
+        "supermarket",
+        "pub",
+        "cafe",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "school",
+        "playground",
+        "bus_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -17.3,
+        32.62996,
+        -17.08999,
+        32.84
+      ],
+      "id": "calheta",
+      "name": "Calheta (Madeira)",
+      "types": [
+        "supermarket",
+        "pub",
+        "cafe",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "school",
+        "playground",
+        "bus_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -0.53,
+        51.25995,
+        0.35006,
+        51.72
+      ],
+      "id": "london",
+      "name": "London",
+      "types": [
+        "supermarket",
+        "pub",
+        "cafe",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "school",
+        "playground",
+        "bus_stop",
+        "station"
+      ]
+    }
+  ],
+  "dataUrlTemplate": "https://sztanko.github.io/walkmap-data-{city}/",
+  "types": [
+    {
+      "id": "supermarket",
+      "name": "Supermarkets"
+    },
+    {
+      "id": "pub",
+      "name": "Pubs"
+    },
+    {
+      "id": "cafe",
+      "name": "Cafés"
+    },
+    {
+      "id": "post_office",
+      "name": "Post offices"
+    },
+    {
+      "id": "pharmacy",
+      "name": "Pharmacies"
+    },
+    {
+      "id": "doctors",
+      "name": "Doctors"
+    },
+    {
+      "id": "school",
+      "name": "Schools"
+    },
+    {
+      "id": "playground",
+      "name": "Playgrounds"
+    },
+    {
+      "id": "bus_stop",
+      "name": "Bus stops"
+    },
+    {
+      "id": "station",
+      "name": "Rail & metro stations"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-data/
+/data/
 pipeline/target/
 .DS_Store
 *.log
