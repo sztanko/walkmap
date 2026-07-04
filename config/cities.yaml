@@ -15,6 +15,12 @@
   grid_m: 5
   pilot: true
 
+- id: calheta
+  name: Calheta (Madeira)
+  pbf_url: https://download.geofabrik.de/europe/portugal-latest.osm.pbf
+  bbox: [-17.30, 32.63, -17.09, 32.84]
+  grid_m: 5
+
 - id: london
   name: London
   pbf_url: https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf

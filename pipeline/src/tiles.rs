@@ -13,7 +13,9 @@ pub fn tippecanoe(out: &Path, partitions: &Path, buildings: &Path) -> Result<()>
             "--quiet",
             "--read-parallel",
             "-Z7",
-            "-z16",
+            // z15 max keeps every archive under GitHub Pages' 100MB file cap;
+            // MapLibre overzooms losslessly (~20 cm precision at z15)
+            "-z15",
             "--detect-shared-borders",
             "--coalesce-smallest-as-needed",
             "--drop-densest-as-needed",

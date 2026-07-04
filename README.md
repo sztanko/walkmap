@@ -24,8 +24,9 @@ directed graph, rendered as an interactive vector-tile map.
    partition boundaries, and emit partition polygons + buildings annotated
    with `(partition, walking time)`.
 5. **Tile** — tippecanoe → PMTiles, one archive per city per feature type,
-   attached to GitHub Releases and read via HTTP range requests by the
-   static MapLibre site in [web/](web/).
+   published to per-city GitHub Pages data repos (`walkmap-data-{city}`) and
+   read via HTTP range requests by the static MapLibre site in [web/](web/).
+   (GitHub Release assets serve no CORS headers, so Pages it is.)
 
 ## Running the pipeline
 

@@ -21,6 +21,7 @@ const SNAP_FEATURE_M: f64 = 200.0;
 const SNAP_BUILDING_M: f64 = 300.0;
 const GRID_MAX_M: f64 = 250.0;
 const MIN_COMPONENT: usize = 30;
+const MIN_ISLAND_M2: f64 = 1200.0; // absorb partition islands smaller than this
 const LAST_LEG_MS: f64 = 1.39; // m/s for the snap-distance last leg
 
 #[derive(Parser)]
@@ -327,7 +328,9 @@ fn run_city(
                 }
             })
             .collect();
-        let polys = polygonize::polygonize(&cell_labels, g.w as usize, g.h as usize);
+        let min_island = (MIN_ISLAND_M2 / (city.grid_m * city.grid_m)).round() as usize;
+        let polys =
+            polygonize::polygonize(&cell_labels, g.w as usize, g.h as usize, true, min_island);
 
         let mut t_max = vec![0u32; sites.len()];
         for (i, &l) in label.iter().enumerate() {
