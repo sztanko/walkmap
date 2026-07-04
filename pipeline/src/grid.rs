@@ -86,18 +86,28 @@ impl Grid {
             }
         };
 
-        // paint tree edges, slowest nodes first (fastest overwrite = win)
-        let mut order: Vec<u32> = (0..node_ll.len() as u32)
-            .filter(|&n| node_dist_ds[n as usize] != u32::MAX && next_hop[n as usize] != u32::MAX)
-            .collect();
-        order.sort_unstable_by_key(|&n| std::cmp::Reverse(node_dist_ds[n as usize]));
-        for n in order {
-            let (mut x, mut y) = self.cell_of(node_ll[n as usize]);
-            let (tx, ty) = self.cell_of(node_ll[next_hop[n as usize] as usize]);
-            // 8-connected Bresenham from (x,y) to (tx,ty)
+        // Paint tree edges with per-cell TIME priority: a cell keeps the
+        // direction of whichever edge passes through it at the earliest
+        // interpolated walking time. Any branch switch during a trace then
+        // strictly decreases remaining time — loops are impossible (pure
+        // edge-priority painting let traces hop onto slower branches at
+        // street crossings and orbit blocks).
+        let mut best = vec![f32::INFINITY; w * h];
+        for n in 0..node_ll.len() {
+            if node_dist_ds[n] == u32::MAX || next_hop[n] == u32::MAX {
+                continue;
+            }
+            let (x0, y0) = self.cell_of(node_ll[n]);
+            let (tx, ty) = self.cell_of(node_ll[next_hop[n] as usize]);
+            let t0 = node_dist_ds[n] as f32;
+            let t1 = node_dist_ds[next_hop[n] as usize] as f32;
+            let steps_total = (tx - x0).abs().max((ty - y0).abs()).max(1) as f32;
+            let (mut x, mut y) = (x0, y0);
             let (dx, dy) = ((tx - x).abs(), -(ty - y).abs());
             let (sx, sy) = ((tx - x).signum(), (ty - y).signum());
             let mut err = dx + dy;
+            let mut step_i = 0f32;
+            // 8-connected Bresenham from (x,y) to (tx,ty)
             while (x, y) != (tx, ty) {
                 let e2 = 2 * err;
                 let (mut stepx, mut stepy) = (0i64, 0i64);
@@ -112,11 +122,18 @@ impl Grid {
                 if stepx == 0 && stepy == 0 {
                     break; // degenerate (same cell)
                 }
-                dirs[y as usize * w + x as usize] = code(stepx, stepy);
+                let cell = y as usize * w + x as usize;
+                let t_here = t0 + (t1 - t0) * (step_i / steps_total);
+                if t_here < best[cell] {
+                    best[cell] = t_here;
+                    dirs[cell] = code(stepx, stepy);
+                }
                 x += stepx;
                 y += stepy;
+                step_i += 1.0;
             }
         }
+        drop(best);
 
         // site nodes are terminal — force their cells clear
         for n in 0..node_ll.len() {
