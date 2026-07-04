@@ -954,6 +954,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "clap",
+ "flate2",
  "kiddo",
  "osmpbf",
  "rayon",

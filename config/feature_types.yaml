@@ -1,27 +1,66 @@
-# Feature types that define partitions.
+# Feature type catalogue. Cities pick their types in cities.yaml (`types:`);
+# an entry's `variants:` overrides `match` per country code or city id
+# (city id wins). Guiding principle: community-DEFINING amenities.
 #
-# Each entry produces one network-Voronoi partitioning per city.
-#
-# `match` is a declarative predicate over OSM tags (and optionally location),
-# satisfying match(tags, lat/lng) -> bool:
-#   { key: <tag>, in: [v1, v2] }   tag equals one of the values
-#   { key: <tag>, exists: true }   tag is present with any value
-#   { any: [rule, ...] }           logical OR
-#   { all: [rule, ...] }           logical AND
-#   { not: rule }                  negation
-# Optional top-level `within: [west, south, east, north]` restricts by location.
+# Match rules:
+#   { key: <tag>, in: [v1, v2] }        tag equals one of the values
+#   { key: <tag>, contains: [s1, s2] }  tag value contains substring (case-insensitive)
+#   { key: <tag>, exists: true }        tag present
+#   { any: [...] } / { all: [...] } / { not: rule }
+
+# ---- food ----------------------------------------------------------------
 
 - id: supermarket
   name: Supermarkets
-  match: { key: shop, in: [supermarket] }
+  # chain supermarkets: branded, or matching the country's big-chain names
+  match: { all: [ { key: shop, in: [supermarket] }, { key: brand, exists: true } ] }
+  variants:
+    uk: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [tesco, sainsbury, asda, morrisons, aldi, lidl, waitrose, "marks & spencer", "m&s", co-op, coop, iceland, budgens, "whole foods"] } ] } ] } }
+    pt: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [continente, "pingo doce", intermarché, intermarche, minipreço, "mini preço", lidl, aldi, spar, auchan, "el corte inglés"] } ] } ] } }
+    es: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [mercadona, carrefour, lidl, aldi, alcampo, eroski, ahorramas, "el corte inglés", consum, caprabo, bonpreu, "supercor", "dia"] } ] } ] } }
+    fr: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [carrefour, monoprix, franprix, auchan, leclerc, intermarché, casino, lidl, aldi, "super u", picard, "naturalia"] } ] } ] } }
+    de: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [edeka, rewe, lidl, aldi, netto, penny, kaufland, norma, tegut, denns] } ] } ] } }
+    at: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [billa, spar, hofer, penny, lidl, merkur, adeg] } ] } ] } }
+    ch: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [migros, coop, denner, lidl, aldi, volg, manor] } ] } ] } }
+    hu: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [tesco, spar, aldi, lidl, penny, auchan, cba, coop, príma, prima] } ] } ] } }
+    tr: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [migros, a101, bim, "bi̇m", şok, sok, carrefoursa, macrocenter, "happy center", "file market"] } ] } ] } }
+    us: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: ["whole foods", "trader joe", safeway, "key food", c-town, gristedes, "stop & shop", wegmans, kroger, aldi, "food bazaar", associated, "foodtown"] } ] } ] } }
+    it: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [esselunga, conad, coop, carrefour, pam, lidl, aldi, crai, despar, "il gigante", iper] } ] } ] } }
+    pl: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [biedronka, lidl, carrefour, auchan, netto, aldi, stokrotka, polomarket, dino, "intermarché"] } ] } ] } }
+    ro: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: ["mega image", carrefour, kaufland, lidl, penny, profi, auchan] } ] } ] } }
+
+- id: grocery
+  name: Grocery stores
+  # everything smaller: corner shops, convenience, greengrocers, and
+  # unbranded "supermarkets" (Krishna's of Orpington belongs here)
+  match:
+    any:
+      - { key: shop, in: [convenience, greengrocer, grocery, deli, food, general] }
+      - { all: [ { key: shop, in: [supermarket] }, { not: { key: brand, exists: true } } ] }
+
+- id: bakery
+  name: Bakeries
+  match: { key: shop, in: [bakery] }
+
+- id: market
+  name: Market halls
+  match: { key: amenity, in: [marketplace] }
+
+- id: cafe
+  name: Cafés
+  match: { key: amenity, in: [cafe] }
+  variants:
+    pt: { match: { any: [ { key: amenity, in: [cafe] }, { key: shop, in: [pastry] } ] } }
 
 - id: pub
   name: Pubs
   match: { key: amenity, in: [pub, biergarten] }
 
-- id: cafe
-  name: Cafés
-  match: { key: amenity, in: [cafe] }
+# ---- civic ---------------------------------------------------------------
+
+- id: townhall
+  name: Town halls
+  match: { key: amenity, in: [townhall] }
 
 - id: post_office
   name: Post offices
@@ -52,13 +91,47 @@
   name: Playgrounds
   match: { key: leisure, in: [playground] }
 
+# ---- transport -----------------------------------------------------------
+
 - id: bus_stop
   name: Bus stops
   match: { key: highway, in: [bus_stop] }
 
-- id: station
-  name: Rail & metro stations
+- id: rail_station
+  name: Rail stations
   match:
     all:
       - { key: railway, in: [station, halt] }
-      - not: { key: station, in: [miniature] }
+      - not: { key: station, in: [subway, light_rail, monorail, funicular, miniature] }
+      - not: { key: subway, in: ["yes"] }
+
+- id: metro_station
+  name: Metro stations
+  # subway + light rail (Underground, DLR, U-Bahn, Metro do Porto, BART…)
+  match:
+    all:
+      - { key: railway, in: [station] }
+      - any:
+          - { key: station, in: [subway, light_rail] }
+          - { key: subway, in: ["yes"] }
+
+- id: tram_stop
+  name: Tram stops
+  match: { key: railway, in: [tram_stop] }
+
+- id: transit
+  name: Public transport (any)
+  # union of all modes; ferry terminals count where ferries are transit
+  match:
+    any:
+      - { key: highway, in: [bus_stop] }
+      - { key: railway, in: [tram_stop, station, halt] }
+  variants:
+    istanbul: &transit_with_ferry
+      match:
+        any:
+          - { key: highway, in: [bus_stop] }
+          - { key: railway, in: [tram_stop, station, halt] }
+          - { key: amenity, in: [ferry_terminal] }
+    new_york: *transit_with_ferry
+    san_francisco: *transit_with_ferry

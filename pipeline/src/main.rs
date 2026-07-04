@@ -3,6 +3,7 @@ mod dijkstra;
 mod elevation;
 mod graph;
 mod grid;
+mod group;
 mod osm;
 mod output;
 mod polygonize;
@@ -39,7 +40,7 @@ enum Cmd {
     /// Run the full pipeline for one city
     Run {
         city: String,
-        /// comma-separated feature type ids (default: all)
+        /// comma-separated feature type ids (default: all configured for the city)
         #[arg(long)]
         types: Option<String>,
         /// re-extract from the PBF even if cached
@@ -69,16 +70,17 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let root = find_root(&cli.root)?;
     let cities = config::load_cities(&root.join("config"))?;
-    let types = config::load_feature_types(&root.join("config"))?;
-    if types.len() > 32 {
-        bail!("at most 32 feature types are supported");
-    }
+    let catalogue = config::load_feature_types(&root.join("config"))?;
     match cli.cmd {
         Cmd::Run { city, types: only, force, skip_tiles } => {
             let city = cities
                 .iter()
                 .find(|c| c.id == city)
                 .with_context(|| format!("unknown city '{city}'"))?;
+            let types = config::resolve_types(city, &catalogue)?;
+            if types.len() > 32 {
+                bail!("at most 32 feature types per city are supported");
+            }
             let selected: Vec<usize> = match &only {
                 None => (0..types.len()).collect(),
                 Some(list) => list
@@ -87,7 +89,7 @@ fn main() -> Result<()> {
                         types
                             .iter()
                             .position(|t| t.id == id)
-                            .with_context(|| format!("unknown feature type '{id}'"))
+                            .with_context(|| format!("type '{id}' not configured for {}", city.id))
                     })
                     .collect::<Result<_>>()?,
             };
@@ -96,7 +98,7 @@ fn main() -> Result<()> {
                 &root.join("web/data"),
                 &root.join("data/out"),
                 &cities,
-                &types,
+                &catalogue,
                 DATA_URL_TEMPLATE,
             )?;
         }
@@ -105,7 +107,7 @@ fn main() -> Result<()> {
                 &root.join("web/data"),
                 &root.join("data/out"),
                 &cities,
-                &types,
+                &catalogue,
                 DATA_URL_TEMPLATE,
             )?;
             eprintln!("wrote web/data/manifest.json");
@@ -124,21 +126,38 @@ fn download_pbf(url: &str, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-fn cache<T: serde::Serialize + serde::de::DeserializeOwned>(
-    path: &Path,
+/// bincode-cached value with validation.
+fn load_cache<T: serde::de::DeserializeOwned>(path: &Path, valid: impl Fn(&T) -> bool) -> Option<T> {
+    let f = std::fs::File::open(path).ok()?;
+    let v: T = bincode::deserialize_from(std::io::BufReader::new(f)).ok()?;
+    valid(&v).then_some(v)
+}
+
+fn store_cache<T: serde::Serialize>(path: &Path, v: &T) -> Result<()> {
+    bincode::serialize_into(std::io::BufWriter::new(std::fs::File::create(path)?), v)?;
+    Ok(())
+}
+
+fn cached_grid(
+    file: &Path,
+    snapper: &snap::Snapper,
+    bbox: [f64; 4],
+    cell_m: f64,
+    n_nodes: usize,
     force: bool,
-    make: impl FnOnce() -> Result<T>,
-) -> Result<T> {
-    if !force && path.exists() {
-        if let Ok(v) = bincode::deserialize_from(std::io::BufReader::new(std::fs::File::open(path)?))
-        {
-            return Ok(v);
+) -> Result<grid::Grid> {
+    if !force {
+        if let Some(g) = load_cache::<grid::Grid>(file, |g: &grid::Grid| {
+            g.nearest.len() == g.dist_dm.len()
+                && g.nearest.iter().all(|&n| n == grid::NODATA || (n as usize) < n_nodes)
+        }) {
+            return Ok(g);
         }
-        eprintln!("  (stale cache {} — rebuilding)", path.display());
     }
-    let v = make()?;
-    bincode::serialize_into(std::io::BufWriter::new(std::fs::File::create(path)?), &v)?;
-    Ok(v)
+    eprintln!("  building {cell_m}m nearest-node grid…");
+    let g = grid::Grid::build(snapper, bbox, cell_m, GRID_MAX_M);
+    store_cache(file, &g)?;
+    Ok(g)
 }
 
 fn run_city(
@@ -163,60 +182,54 @@ fn run_city(
     let pbf = pbf_dir.join(fname);
     download_pbf(&city.pbf_url, &pbf)?;
 
-    // 2. extract (cached)
-    eprintln!("[{}] extracting…", city.id);
+    // 2. extract (cache keyed by the resolved feature-type config)
+    let extract_file = work.join(format!("extract_{:016x}.bin", config::types_hash(types)));
     if force {
-        for f in ["extract.bin", "elev.bin"] {
-            let _ = std::fs::remove_file(work.join(f));
-        }
-        for e in std::fs::read_dir(&work)? {
-            let p = e?.path();
-            if p.file_name().and_then(|s| s.to_str()).is_some_and(|s| s.starts_with("grid_")) {
-                let _ = std::fs::remove_file(p);
-            }
+        let _ = std::fs::remove_file(&extract_file);
+    }
+    // stale extract caches from older configs just waste disk — clean them
+    for e in std::fs::read_dir(&work)? {
+        let p = e?.path();
+        let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+        if (name.starts_with("extract") && p != extract_file)
+            || name.starts_with("grid_") // pre-v2 grid caches lack dist_dm
+        {
+            let _ = std::fs::remove_file(p);
         }
     }
-    let data = cache(&work.join("extract.bin"), false, || osm::extract(&pbf, city, types))?;
+    let data = match load_cache::<osm::CityData>(&extract_file, |_| true) {
+        Some(d) => d,
+        None => {
+            eprintln!("[{}] extracting…", city.id);
+            let d = osm::extract(&pbf, city, types)?;
+            store_cache(&extract_file, &d)?;
+            d
+        }
+    };
 
     // 3. prune weak components
-    let (node_ll, segments) = graph::prune(data.node_ll.clone(), data.segments.clone(), MIN_COMPONENT);
+    let (node_ll, segments) =
+        graph::prune(data.node_ll.clone(), data.segments.clone(), MIN_COMPONENT);
     if node_ll.is_empty() {
         bail!("empty walking graph");
     }
 
     // 4. elevation (cached; validated against node count)
-    let elev: Vec<f32> = {
-        let cached: Option<Vec<f32>> = (!force && work.join("elev.bin").exists())
-            .then(|| {
-                bincode::deserialize_from(std::io::BufReader::new(
-                    std::fs::File::open(work.join("elev.bin")).ok()?,
-                ))
-                .ok()
-            })
-            .flatten()
-            .filter(|v: &Vec<f32>| v.len() == node_ll.len());
-        match cached {
-            Some(v) => v,
-            None => {
-                eprintln!("[{}] sampling elevation…", city.id);
-                let dem = elevation::Dem::load_for(&dem_dir, &node_ll)?;
-                let v = dem.sample_all(&node_ll);
-                bincode::serialize_into(
-                    std::io::BufWriter::new(std::fs::File::create(work.join("elev.bin"))?),
-                    &v,
-                )?;
-                v
-            }
+    if force {
+        let _ = std::fs::remove_file(work.join("elev.bin"));
+    }
+    let elev: Vec<f32> = match load_cache(&work.join("elev.bin"), |v: &Vec<f32>| {
+        v.len() == node_ll.len()
+    }) {
+        Some(v) => v,
+        None => {
+            eprintln!("[{}] sampling elevation…", city.id);
+            let dem = elevation::Dem::load_for(&dem_dir, &node_ll)?;
+            let v = dem.sample_all(&node_ll);
+            store_cache(&work.join("elev.bin"), &v)?;
+            v
         }
     };
-    {
-        let (mut mn, mut mx) = (f32::MAX, f32::MIN);
-        for &e in &elev {
-            mn = mn.min(e);
-            mx = mx.max(e);
-        }
-        eprintln!("[{}] elevation range: {:.0}–{:.0} m", city.id, mn, mx);
-    }
 
     // 5. reversed weighted graph
     let csr = graph::build_rev_csr(&node_ll, &elev, &segments);
@@ -231,41 +244,34 @@ fn run_city(
         .map(|b| snapper.nearest(b.centroid, SNAP_BUILDING_M))
         .collect();
 
-    // 7. nearest-node grid (cached)
-    let grid_file = work.join(format!("grid_{}.bin", city.grid_m));
-    let g: grid::Grid = {
-        let cached: Option<grid::Grid> = (!force && grid_file.exists())
-            .then(|| {
-                bincode::deserialize_from(std::io::BufReader::new(
-                    std::fs::File::open(&grid_file).ok()?,
-                ))
-                .ok()
-            })
-            .flatten()
-            .filter(|g: &grid::Grid| {
-                g.nearest.iter().all(|&n| n == grid::NODATA || (n as usize) < node_ll.len())
-            });
-        match cached {
-            Some(g) => g,
-            None => {
-                eprintln!("[{}] building {}m nearest-node grid…", city.id, city.grid_m);
-                let g = grid::Grid::build(&snapper, bbox, city.grid_m, GRID_MAX_M);
-                bincode::serialize_into(
-                    std::io::BufWriter::new(std::fs::File::create(&grid_file)?),
-                    &g,
-                )?;
-                g
-            }
-        }
-    };
+    // 7. nearest-node grids: fine (polygons/buildings) + coarse (path rasters)
+    let g = cached_grid(
+        &work.join(format!("gridv2_{}.bin", city.grid_m)),
+        &snapper,
+        bbox,
+        city.grid_m,
+        node_ll.len(),
+        force,
+    )?;
+    let path_cell_m = city.grid_m * 2.0;
+    let pg = cached_grid(
+        &work.join(format!("gridv2_{}.bin", path_cell_m)),
+        &snapper,
+        bbox,
+        path_cell_m,
+        node_ll.len(),
+        force,
+    )?;
     eprintln!(
-        "[{}] grid {}×{} ({:.1}M cells), {:.0}% covered",
+        "[{}] grid {}×{} ({:.1}M cells), {:.0}% covered; path grid {}×{}",
         city.id,
         g.w,
         g.h,
         (g.w as f64 * g.h as f64) / 1e6,
         100.0 * g.nearest.iter().filter(|&&n| n != grid::NODATA).count() as f64
-            / g.nearest.len() as f64
+            / g.nearest.len() as f64,
+        pg.w,
+        pg.h,
     );
 
     // 8. building geometries (reused across types)
@@ -275,43 +281,45 @@ fn run_city(
     for &ti in selected {
         let ft = &types[ti];
         let tt = Instant::now();
-        let feats = &data.features[ti];
 
-        // snap features to sites (one site per graph node; nearest feature wins)
-        let mut by_node: rustc_hash::FxHashMap<u32, (usize, f64)> = rustc_hash::FxHashMap::default();
+        // group near-duplicate features (paired directional stops etc.),
+        // then seed EVERY member's snapped node with the group's pid
+        let groups = group::group_features(&data.features[ti]);
+        let mut sites: Vec<output::SiteOut> = Vec::with_capacity(groups.len());
+        let mut seeds: Vec<(u32, u32)> = Vec::new();
+        let mut seen_nodes: rustc_hash::FxHashSet<u32> = rustc_hash::FxHashSet::default();
         let mut unsnapped = 0usize;
-        for (fi, f) in feats.iter().enumerate() {
-            match snapper.nearest(f.ll, SNAP_FEATURE_M) {
-                Some((node, d)) => {
-                    let e = by_node.entry(node).or_insert((fi, d));
-                    if d < e.1 {
-                        *e = (fi, d);
-                    }
-                }
-                None => unsnapped += 1,
-            }
-        }
-        if by_node.is_empty() {
-            eprintln!("[{}] {}: no snappable features — skipped", city.id, ft.id);
-            continue;
-        }
-        let mut sites: Vec<output::SiteOut> = Vec::with_capacity(by_node.len());
-        let mut seeds: Vec<(u32, u32)> = Vec::with_capacity(by_node.len());
-        for (node, (fi, _)) in &by_node {
+        for gr in &groups {
             let pid = sites.len() as u32;
+            let mut any = false;
+            for ll in &gr.member_lls {
+                if let Some((node, _)) = snapper.nearest(*ll, SNAP_FEATURE_M) {
+                    if seen_nodes.insert(node) {
+                        seeds.push((node, pid));
+                    }
+                    any = true;
+                }
+            }
+            if !any {
+                unsnapped += 1;
+            }
             sites.push(output::SiteOut {
                 pid,
-                name: feats[*fi].name.clone(),
-                ll: feats[*fi].ll,
+                name: gr.name.clone(),
+                ll: gr.ll,
+                k: gr.member_lls.len() as u32,
             });
-            seeds.push((*node, pid));
+        }
+        if seeds.is_empty() {
+            eprintln!("[{}] {}: no snappable features — skipped", city.id, ft.id);
+            continue;
         }
 
         // multi-source dijkstra on the reversed graph
         let (label, dist) = dijkstra::partition(&csr, &seeds);
         let reached = label.iter().filter(|&&l| l != dijkstra::UNREACHED).count();
 
-        // partition polygons from the grid
+        // partition polygons + adjacency from the fine grid
         let cell_labels: Vec<u32> = g
             .nearest
             .par_iter()
@@ -329,8 +337,9 @@ fn run_city(
             })
             .collect();
         let min_island = (MIN_ISLAND_M2 / (city.grid_m * city.grid_m)).round() as usize;
-        let polys =
+        let (polys, adjacency) =
             polygonize::polygonize(&cell_labels, g.w as usize, g.h as usize, true, min_island);
+        let colors = output::assign_colors(sites.len(), &adjacency);
 
         let mut t_max = vec![0u32; sites.len()];
         for (i, &l) in label.iter().enumerate() {
@@ -347,6 +356,7 @@ fn run_city(
                     .clone()
                     .unwrap_or_else(|| format!("{} #{}", ft.name, lp.label)),
                 t_max_s: t_max[lp.label as usize],
+                color: colors[lp.label as usize],
                 polys: lp
                     .polys
                     .into_iter()
@@ -392,24 +402,28 @@ fn run_city(
         let part_path = work.join(format!("{}.partitions.geojsonl", ft.id));
         let bld_path = work.join(format!("{}.buildings.geojsonl", ft.id));
         output::write_partitions_geojsonl(&part_path, &parts)?;
-        let n_bld = output::write_buildings_geojsonl(&bld_path, &geoms, &pid_t)?;
+        let n_bld = output::write_buildings_geojsonl(&bld_path, &geoms, &pid_t, &colors)?;
         output::write_sites_json(&out.join(format!("{}.sites.json", ft.id)), &sites)?;
 
+        // walk-path direction raster (coarse grid)
+        let dirs = pg.direction_field(&dist);
+        output::write_dirs_gz(&out.join(format!("{}.dirs.gz", ft.id)), &dirs)?;
+
         // stats
+        let grouped = sites.iter().filter(|s| s.k > 1).count();
         let mut ts: Vec<u32> = pid_t.iter().filter_map(|x| x.and_then(|(_, t)| t)).collect();
         ts.sort_unstable();
         let med = ts.get(ts.len() / 2).copied().unwrap_or(0);
-        let p90 = ts.get(ts.len() * 9 / 10).copied().unwrap_or(0);
         eprintln!(
-            "[{}] {}: {} sites ({} unsnapped feats), {:.0}% nodes reached, {} buildings (median {:.0} min, p90 {:.0} min) [{:.0}s]",
+            "[{}] {}: {} sites ({} grouped, {} unsnapped), {:.0}% nodes reached, {} buildings (median {:.0} min) [{:.0}s]",
             city.id,
             ft.id,
             sites.len(),
+            grouped,
             unsnapped,
             100.0 * reached as f64 / label.len() as f64,
             n_bld,
             med as f64 / 60.0,
-            p90 as f64 / 60.0,
             tt.elapsed().as_secs_f64(),
         );
 
@@ -428,7 +442,7 @@ fn run_city(
         }
     }
 
-    output::write_city_meta(&out.join("meta.json"), city, g.bbox())?;
+    output::write_city_meta(&out.join("meta.json"), city, g.bbox(), &pg)?;
     eprintln!("[{}] done in {:.0}s", city.id, t0.elapsed().as_secs_f64());
     Ok(())
 }

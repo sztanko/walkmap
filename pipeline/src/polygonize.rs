@@ -90,13 +90,15 @@ struct Polyline {
     closed: bool,
 }
 
+/// Returns the label polygons plus the partition adjacency (unordered label
+/// pairs sharing a boundary, NODATA excluded) — used for graph colouring.
 pub fn polygonize(
     labels: &[u32],
     w: usize,
     h: usize,
     smooth: bool,
     min_island_cells: usize,
-) -> Vec<LabelPolys> {
+) -> (Vec<LabelPolys>, Vec<(u32, u32)>) {
     assert_eq!(labels.len(), w * h);
     let mut labels = labels.to_vec();
     absorb_small_islands(&mut labels, w, h, min_island_cells);
@@ -147,6 +149,8 @@ pub fn polygonize(
         let key = (l0.min(l1), l0.max(l1));
         groups.entry(key).or_default().push((a, b));
     }
+    let adjacency: Vec<(u32, u32)> =
+        groups.keys().filter(|(a, b)| *a != NODATA && *b != NODATA && a != b).copied().collect();
 
     let side = |a: u64, b: u64| -> u32 {
         let (key, slot) = if a < b { ((a, b), 0) } else { ((b, a), 1) };
@@ -241,7 +245,7 @@ pub fn polygonize(
         .map(|(label, insts)| LabelPolys { label, polys: assemble(label, &insts, &polylines) })
         .collect();
     out.sort_by_key(|lp| lp.label);
-    out
+    (out, adjacency)
 }
 
 fn make_polyline(chain: Vec<u64>, closed: bool, side: &dyn Fn(u64, u64) -> u32, cw: f64) -> Polyline {
@@ -529,7 +533,7 @@ mod tests {
     }
 
     fn exact(labels: &[u32], w: usize, h: usize) -> Vec<LabelPolys> {
-        polygonize(labels, w, h, false, 0)
+        polygonize(labels, w, h, false, 0).0
     }
 
     #[test]
@@ -664,7 +668,9 @@ mod tests {
         // percent of the exact cell count (Chaikin trims corners slightly)
         let (w, h) = (60usize, 40usize);
         let (labels, labeled) = random_grid(w, h, 4, 987654321);
-        let polys = polygonize(&labels, w, h, true, 3);
+        let (polys, adjacency) = polygonize(&labels, w, h, true, 3);
+        assert!(!adjacency.is_empty());
+        assert!(adjacency.iter().all(|&(a, b)| a != b && a != NODATA && b != NODATA));
         let mut total = 0.0;
         for lp in &polys {
             for rings in &lp.polys {
@@ -694,7 +700,8 @@ mod tests {
             0, 0, 1, 1,
             0, 0, 1, 1,
         ];
-        let polys = polygonize(&g, 4, 2, true, 0);
+        let (polys, adjacency) = polygonize(&g, 4, 2, true, 0);
+        assert_eq!(adjacency, vec![(0, 1)]);
         let a: f64 = total_cells(&polys.iter().find(|p| p.label == 0).unwrap().polys);
         let b: f64 = total_cells(&polys.iter().find(|p| p.label == 1).unwrap().polys);
         // outer boundary is smoothed identically for both; their sum must equal

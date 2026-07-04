@@ -31,15 +31,19 @@
       <span>Opacity</span>
       <input id="opacity" type="range" min="10" max="100" value="80">
     </label>
+    <label class="pathtoggle">
+      <input id="pathhover" type="checkbox" checked>
+      <span>Walk path on hover / tap</span>
+    </label>
     <div id="legend">
-      <div class="legend-buildings">
+      <div class="swatches">
+        <i style="background:#4e79a7"></i><i style="background:#f28e2b"></i><i style="background:#59a14f"></i><i style="background:#e15759"></i><i style="background:#b07aa1"></i><i style="background:#edc948"></i>
+      </div>
+      <div class="legend-ramp-note">
         <div class="ramp"></div>
         <div class="ramp-labels"><span>0 min</span><span>15</span><span>30+</span></div>
-        <p>Each hue is one catchment; darker = longer walk to its <span class="tname">feature</span>.</p>
       </div>
-      <div class="legend-areas" hidden>
-        <p>Each colour is the area closest — by walking time, uphill counted — to one <span class="tname">feature</span>.</p>
-      </div>
+      <p>Each colour is one catchment — the area closest, by walking time (uphill counted), to one <span class="tname">feature</span>. Darker buildings = longer walk.</p>
     </div>
     <details id="about">
       <summary>About</summary>

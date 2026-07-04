@@ -32,7 +32,7 @@ git -C "$STAGE" init -q -b main
 git -C "$STAGE" config user.name "Demeter Sztanko"
 git -C "$STAGE" config user.email "sztanko@gmail.com"
 
-cp "$OUT"/*.pmtiles "$OUT"/*.sites.json "$OUT"/meta.json "$STAGE/"
+cp "$OUT"/*.pmtiles "$OUT"/*.sites.json "$OUT"/*.dirs.gz "$OUT"/meta.json "$STAGE/"
 touch "$STAGE/.nojekyll"
 cat > "$STAGE/README.md" <<EOF
 # walkmap data: $CITY

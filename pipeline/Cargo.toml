@@ -16,6 +16,7 @@ kiddo = "4.2"
 bincode = "1"
 rustc-hash = "2"
 anyhow = "1"
+flate2 = "1"
 
 [profile.release]
 opt-level = 3

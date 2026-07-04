@@ -9,10 +9,22 @@
       ],
       "id": "funchal",
       "name": "Funchal",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00010669008018314418,
+        "h": 1106,
+        "north": 32.7,
+        "w": 1594,
+        "west": -17.02
+      },
       "types": [
         "supermarket",
-        "pub",
+        "grocery",
+        "bakery",
+        "market",
         "cafe",
+        "pub",
+        "townhall",
         "post_office",
         "pharmacy",
         "doctors",
@@ -30,10 +42,22 @@
       ],
       "id": "calheta",
       "name": "Calheta (Madeira)",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00010679171194897944,
+        "h": 2323,
+        "north": 32.84,
+        "w": 1967,
+        "west": -17.3
+      },
       "types": [
         "supermarket",
-        "pub",
+        "grocery",
+        "bakery",
+        "market",
         "cafe",
+        "pub",
+        "townhall",
         "post_office",
         "pharmacy",
         "doctors",
@@ -51,17 +75,17 @@
       ],
       "id": "london",
       "name": "London",
+      "pathGrid": null,
       "types": [
         "supermarket",
-        "pub",
         "cafe",
+        "pub",
         "post_office",
         "pharmacy",
         "doctors",
         "school",
         "playground",
-        "bus_stop",
-        "station"
+        "bus_stop"
       ]
     }
   ],
@@ -72,12 +96,28 @@
       "name": "Supermarkets"
     },
     {
-      "id": "pub",
-      "name": "Pubs"
+      "id": "grocery",
+      "name": "Grocery stores"
+    },
+    {
+      "id": "bakery",
+      "name": "Bakeries"
+    },
+    {
+      "id": "market",
+      "name": "Market halls"
     },
     {
       "id": "cafe",
       "name": "Cafés"
+    },
+    {
+      "id": "pub",
+      "name": "Pubs"
+    },
+    {
+      "id": "townhall",
+      "name": "Town halls"
     },
     {
       "id": "post_office",
@@ -104,8 +144,20 @@
       "name": "Bus stops"
     },
     {
-      "id": "station",
-      "name": "Rail & metro stations"
+      "id": "rail_station",
+      "name": "Rail stations"
+    },
+    {
+      "id": "metro_station",
+      "name": "Metro stations"
+    },
+    {
+      "id": "tram_stop",
+      "name": "Tram stops"
+    },
+    {
+      "id": "transit",
+      "name": "Public transport (any)"
     }
   ]
 }
