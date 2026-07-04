@@ -92,8 +92,10 @@ function removeData() {
 
 const EMPTY = { type: "FeatureCollection", features: [] };
 
+const bust = () => (state.manifest.v ? `?v=${state.manifest.v}` : "");
+
 function addData() {
-  const url = `pmtiles://${dataBase(state.city.id)}${state.type}.pmtiles`;
+  const url = `pmtiles://${dataBase(state.city.id)}${state.type}.pmtiles${bust()}`;
   const before = firstSymbolId();
   map.addSource(SRC, { type: "vector", url });
 
@@ -162,7 +164,7 @@ function addData() {
       source: "walkpath",
       filter: ["==", "$type", "LineString"],
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#14182b", "line-width": 1.6 },
+      paint: { "line-color": "#6b3a17", "line-width": 2.4 },
     },
     before
   );
@@ -173,9 +175,9 @@ function addData() {
     filter: ["==", "$type", "LineString"],
     layout: {
       "symbol-placement": "line",
-      "symbol-spacing": 55,
+      "symbol-spacing": 26,
       "text-field": ">",
-      "text-size": 11,
+      "text-size": 12,
       "text-font": ["Noto Sans Bold"],
       "text-keep-upright": false,
       "text-rotation-alignment": "map",
@@ -183,9 +185,9 @@ function addData() {
       "text-ignore-placement": true,
     },
     paint: {
-      "text-color": "#1d2233",
-      "text-halo-color": "rgba(255,255,255,0.9)",
-      "text-halo-width": 1,
+      "text-color": "#ffffff",
+      "text-halo-color": "#6b3a17",
+      "text-halo-width": 1.4,
     },
   });
   map.addLayer({
@@ -194,8 +196,8 @@ function addData() {
     source: "walkpath",
     filter: ["==", "$type", "Point"],
     paint: {
-      "circle-radius": 4,
-      "circle-color": "#1d2233",
+      "circle-radius": 4.5,
+      "circle-color": "#6b3a17",
       "circle-stroke-color": "#fff",
       "circle-stroke-width": 1.5,
     },
@@ -282,7 +284,7 @@ async function ensureDirs() {
   if (pathCache.key === key && pathCache.dirs) return pathCache.dirs;
   if (pathCache.loading?.key === key) return pathCache.loading.promise;
   const promise = (async () => {
-    const resp = await fetch(`${dataBase(state.city.id)}${state.type}.dirs.gz`);
+    const resp = await fetch(`${dataBase(state.city.id)}${state.type}.dirs.gz${bust()}`);
     if (!resp.ok) throw new Error(`dirs ${resp.status}`);
     let buf = await resp.arrayBuffer();
     const head = new Uint8Array(buf, 0, 2);
@@ -390,7 +392,7 @@ els.pathToggle?.addEventListener("change", () => {
 // ---------- data switching ----------
 async function loadSites() {
   try {
-    const r = await fetch(`${dataBase(state.city.id)}${state.type}.sites.json`);
+    const r = await fetch(`${dataBase(state.city.id)}${state.type}.sites.json${bust()}`);
     state.sites = (await r.json()).sites;
   } catch {
     state.sites = [];

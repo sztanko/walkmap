@@ -10,11 +10,11 @@
       "id": "funchal",
       "name": "Funchal",
       "pathGrid": {
-        "dlat": 0.00009043717329571148,
-        "dlng": 0.00010669008018314418,
-        "h": 1106,
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.00005334504009157209,
+        "h": 2212,
         "north": 32.7,
-        "w": 1594,
+        "w": 3187,
         "west": -17.02
       },
       "types": [
@@ -40,18 +40,16 @@
       "id": "calheta",
       "name": "Calheta (Madeira)",
       "pathGrid": {
-        "dlat": 0.00009043717329571148,
-        "dlng": 0.00010679171194897944,
-        "h": 2323,
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.00005339585597448971,
+        "h": 4645,
         "north": 32.84,
-        "w": 1967,
+        "w": 3933,
         "west": -17.3
       },
       "types": [
-        "supermarket",
         "grocery",
         "bakery",
-        "market",
         "cafe",
         "townhall",
         "post_office",
@@ -71,30 +69,29 @@
       "id": "london",
       "name": "London",
       "pathGrid": {
-        "dlat": 0.00018087434659142296,
-        "dlng": 0.0002885439388714387,
-        "h": 2544,
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00014427196943571935,
+        "h": 5087,
         "north": 51.72,
-        "w": 3050,
+        "w": 6100,
         "west": -0.53
       },
       "types": [
         "supermarket",
         "grocery",
-        "bakery",
         "market",
         "cafe",
         "pub",
+        "greggs",
         "townhall",
         "post_office",
         "pharmacy",
         "doctors",
+        "primary_school",
+        "secondary_school",
         "playground",
         "bus_stop",
-        "rail_station",
-        "metro_station",
-        "tram_stop",
-        "transit"
+        "station"
       ]
     }
   ],
@@ -180,5 +177,6 @@
       "id": "transit",
       "name": "Public transport (any)"
     }
-  ]
+  ],
+  "v": 1783186687
 }

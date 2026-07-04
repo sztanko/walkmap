@@ -99,12 +99,14 @@ fn is_building(tags: &HashMap<&str, &str>) -> bool {
 }
 
 struct WalkWay {
+    id: i64,
     refs: Vec<i64>,
     steps: bool,
     flat: bool,
 }
 
 struct FeatWay {
+    id: i64,
     refs: Vec<i64>,
     mask: u32,
     name: Option<String>,
@@ -113,11 +115,12 @@ struct FeatWay {
 #[derive(Default)]
 struct Pass1 {
     walk: Vec<WalkWay>,
-    blds: Vec<Vec<i64>>,
+    blds: Vec<(i64, Vec<i64>)>,
     feats: Vec<FeatWay>,
 }
 
 struct FeatNode {
+    id: i64,
     ll: [f64; 2],
     mask: u32,
     name: Option<String>,
@@ -183,14 +186,20 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
                             continue;
                         }
                         if let Some((steps, flat)) = walkable(&tags) {
-                            acc.walk.push(WalkWay { refs: way.refs().collect(), steps, flat });
+                            acc.walk.push(WalkWay {
+                                id: way.id(),
+                                refs: way.refs().collect(),
+                                steps,
+                                flat,
+                            });
                         }
                         if is_building(&tags) {
-                            acc.blds.push(way.refs().collect());
+                            acc.blds.push((way.id(), way.refs().collect()));
                         }
                         let mask = type_mask(types, &tags);
                         if mask != 0 {
                             acc.feats.push(FeatWay {
+                                id: way.id(),
                                 refs: way.refs().collect(),
                                 mask,
                                 name: tags.get("name").map(|s| s.to_string()),
@@ -207,6 +216,12 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
             a.feats.extend(b.feats);
             Ok(a)
         })?;
+    let mut p1 = p1;
+    // parallel blob reduction is order-nondeterministic; sort so compact node
+    // ids (and everything cached against them) are stable across runs
+    p1.walk.sort_unstable_by_key(|w| w.id);
+    p1.blds.sort_unstable_by_key(|(id, _)| *id);
+    p1.feats.sort_unstable_by_key(|f| f.id);
 
     eprintln!(
         "  pass1: {} walkable ways, {} buildings, {} feature ways",
@@ -219,7 +234,7 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
     for w in &p1.walk {
         needed.extend(&w.refs);
     }
-    for b in &p1.blds {
+    for (_, b) in &p1.blds {
         needed.extend(b);
     }
     for f in &p1.feats {
@@ -254,6 +269,7 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
                             }
                             if mask != 0 {
                                 acc.feats.push(FeatNode {
+                                    id: node.id(),
                                     ll: [lng, lat],
                                     mask,
                                     name: map.get("name").map(|s| s.to_string()),
@@ -279,6 +295,7 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
                             }
                             if mask != 0 {
                                 acc.feats.push(FeatNode {
+                                    id: node.id(),
                                     ll: [lng, lat],
                                     mask,
                                     name: map.get("name").map(|s| s.to_string()),
@@ -296,6 +313,8 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
             Ok(a)
         })?;
     drop(needed);
+    let mut p2 = p2;
+    p2.feats.sort_unstable_by_key(|f| f.id);
 
     let coords: FxHashMap<i64, [f64; 2]> = p2.coords.into_iter().collect();
     eprintln!("  pass2: {} node coords, {} feature nodes", coords.len(), p2.feats.len());
@@ -331,7 +350,7 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
     let buildings: Vec<Building> = p1
         .blds
         .par_iter()
-        .filter_map(|refs| {
+        .filter_map(|(_, refs)| {
             let mut ring: Vec<[f64; 2]> = Vec::with_capacity(refs.len());
             for r in refs {
                 ring.push(*coords.get(r)?); // any missing node → skip building

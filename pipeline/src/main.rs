@@ -220,25 +220,40 @@ fn store_cache<T: serde::Serialize>(path: &Path, v: &T) -> Result<()> {
     Ok(())
 }
 
+/// Fingerprint of the node set. Grid caches store node INDICES, which are
+/// only meaningful for the exact node array they were built against — a grid
+/// reused across extracts scrambles every partition label.
+fn nodes_fingerprint(node_ll: &[[f64; 2]]) -> u64 {
+    use std::hash::Hasher;
+    let mut h = rustc_hash::FxHasher::default();
+    h.write_usize(node_ll.len());
+    let step = (node_ll.len() / 997).max(1);
+    for p in node_ll.iter().step_by(step) {
+        h.write_u64(p[0].to_bits());
+        h.write_u64(p[1].to_bits());
+    }
+    h.finish()
+}
+
 fn cached_grid(
     file: &Path,
     snapper: &snap::Snapper,
     bbox: [f64; 4],
     cell_m: f64,
-    n_nodes: usize,
+    node_ll: &[[f64; 2]],
     force: bool,
 ) -> Result<grid::Grid> {
+    let fp = nodes_fingerprint(node_ll);
     if !force {
-        if let Some(g) = load_cache::<grid::Grid>(file, |g: &grid::Grid| {
-            g.nearest.len() == g.dist_dm.len()
-                && g.nearest.iter().all(|&n| n == grid::NODATA || (n as usize) < n_nodes)
+        if let Some((_, g)) = load_cache::<(u64, grid::Grid)>(file, |(cached_fp, g)| {
+            *cached_fp == fp && g.nearest.len() == g.dist_dm.len()
         }) {
             return Ok(g);
         }
     }
     eprintln!("  building {cell_m}m nearest-node grid…");
     let g = grid::Grid::build(snapper, bbox, cell_m, GRID_MAX_M);
-    store_cache(file, &g)?;
+    store_cache(file, &(fp, &g))?;
     Ok(g)
 }
 
@@ -274,7 +289,8 @@ fn run_city(
         let p = e?.path();
         let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
         if (name.starts_with("extract") && p != extract_file)
-            || name.starts_with("grid_") // pre-v2 grid caches lack dist_dm
+            || name.starts_with("grid_") // pre-v2: no dist_dm
+            || name.starts_with("gridv2_") // pre-v3: no node-set fingerprint
         {
             let _ = std::fs::remove_file(p);
         }
@@ -296,19 +312,22 @@ fn run_city(
         bail!("empty walking graph");
     }
 
-    // 4. elevation (cached; validated against node count)
+    // 4. elevation (cached; node-set fingerprinted — it's index-aligned)
+    let node_fp = nodes_fingerprint(&node_ll);
+    let elev_file = work.join("elevv2.bin");
     if force {
-        let _ = std::fs::remove_file(work.join("elev.bin"));
+        let _ = std::fs::remove_file(&elev_file);
     }
-    let elev: Vec<f32> = match load_cache(&work.join("elev.bin"), |v: &Vec<f32>| {
-        v.len() == node_ll.len()
+    let _ = std::fs::remove_file(work.join("elev.bin")); // pre-v2: unfingerprinted
+    let elev: Vec<f32> = match load_cache::<(u64, Vec<f32>)>(&elev_file, |(fp, v)| {
+        *fp == node_fp && v.len() == node_ll.len()
     }) {
-        Some(v) => v,
+        Some((_, v)) => v,
         None => {
             eprintln!("[{}] sampling elevation…", city.id);
             let dem = elevation::Dem::load_for(&dem_dir, &node_ll)?;
             let v = dem.sample_all(&node_ll);
-            store_cache(&work.join("elev.bin"), &v)?;
+            store_cache(&elev_file, &(node_fp, &v))?;
             v
         }
     };
@@ -328,32 +347,24 @@ fn run_city(
 
     // 7. nearest-node grids: fine (polygons/buildings) + coarse (path rasters)
     let g = cached_grid(
-        &work.join(format!("gridv2_{}.bin", city.grid_m)),
+        &work.join(format!("gridv3_{}.bin", city.grid_m)),
         &snapper,
         bbox,
         city.grid_m,
-        node_ll.len(),
+        &node_ll,
         force,
     )?;
-    let path_cell_m = city.grid_m * 2.0;
-    let pg = cached_grid(
-        &work.join(format!("gridv2_{}.bin", path_cell_m)),
-        &snapper,
-        bbox,
-        path_cell_m,
-        node_ll.len(),
-        force,
-    )?;
+    // the path raster shares the fine grid: a coarser one snaps hover points
+    // to different nodes than the area raster, making traces appear to start
+    // in (and cross) the wrong catchment
     eprintln!(
-        "[{}] grid {}×{} ({:.1}M cells), {:.0}% covered; path grid {}×{}",
+        "[{}] grid {}×{} ({:.1}M cells), {:.0}% covered",
         city.id,
         g.w,
         g.h,
         (g.w as f64 * g.h as f64) / 1e6,
         100.0 * g.nearest.iter().filter(|&&n| n != grid::NODATA).count() as f64
             / g.nearest.len() as f64,
-        pg.w,
-        pg.h,
     );
 
     // 8. building geometries (reused across types)
@@ -487,8 +498,8 @@ fn run_city(
         let n_bld = output::write_buildings_geojsonl(&bld_path, &geoms, &pid_t, &colors)?;
         output::write_sites_json(&out.join(format!("{}.sites.json", ft.id)), &sites)?;
 
-        // walk-path direction raster (coarse grid)
-        let dirs = pg.direction_field(&node_ll, &next_hop, &dist);
+        // walk-path direction raster (same grid as the area polygons)
+        let dirs = g.direction_field(&node_ll, &next_hop, &dist);
         output::write_dirs_gz(&out.join(format!("{}.dirs.gz", ft.id)), &dirs)?;
 
         // stats
@@ -539,7 +550,7 @@ fn run_city(
             }
         }
     }
-    output::write_city_meta(&out.join("meta.json"), city, g.bbox(), &pg)?;
+    output::write_city_meta(&out.join("meta.json"), city, g.bbox(), &g)?;
     eprintln!("[{}] done in {:.0}s", city.id, t0.elapsed().as_secs_f64());
     Ok(())
 }

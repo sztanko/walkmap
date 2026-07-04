@@ -316,6 +316,12 @@ pub fn write_manifest(
     }
     std::fs::create_dir_all(web_data_dir)?;
     let manifest = serde_json::json!({
+        // version cache-buster: rewritten PMTiles must never be read through
+        // a stale directory cache (appended as ?v= by the UI)
+        "v": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0),
         "dataUrlTemplate": data_url_template,
         "types": types.iter().map(|t| serde_json::json!({"id": t.id, "name": t.name})).collect::<Vec<_>>(),
         "cities": out_cities,
