@@ -28,6 +28,7 @@
     it: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [esselunga, conad, coop, carrefour, pam, lidl, aldi, crai, despar, "il gigante", iper] } ] } ] } }
     pl: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [biedronka, lidl, carrefour, auchan, netto, aldi, stokrotka, polomarket, dino, "intermarché"] } ] } ] } }
     ro: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: ["mega image", carrefour, kaufland, lidl, penny, profi, auchan] } ] } ] } }
+    nl: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: ["albert heijn", jumbo, lidl, aldi, dirk, plus, coop, spar, vomar, dekamarkt, ekoplaza, "marqt"] } ] } ] } }
 
 - id: grocery
   name: Grocery stores

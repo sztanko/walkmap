@@ -44,100 +44,115 @@
   bbox: [-0.53, 51.26, 0.35, 51.72]
   pilot: true
 
+- id: amsterdam
+  name: Amsterdam
+  pbf_url: https://download.geofabrik.de/europe/netherlands/noord-holland-latest.osm.pbf
+  country: nl
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
+  bbox: [4.72, 52.27, 5.08, 52.44]
+
+- id: haarlem
+  name: Haarlem
+  pbf_url: https://download.geofabrik.de/europe/netherlands/noord-holland-latest.osm.pbf
+  country: nl
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, bus_stop, primary_school, station]
+  bbox: [4.58, 52.33, 4.70, 52.44]
+  grid_m: 5
+
 - id: manchester
   name: Manchester
   pbf_url: https://download.geofabrik.de/europe/united-kingdom/england/greater-manchester-latest.osm.pbf
   country: uk
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, pub, bus_stop, rail_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, pub, greggs, primary_school, secondary_school, station, tram_stop]
 
 - id: madrid
   name: Madrid
   pbf_url: https://download.geofabrik.de/europe/spain/madrid-latest.osm.pbf
   country: es
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station]
   bbox: [-3.89, 40.31, -3.51, 40.57]
 
 - id: edinburgh
   name: Edinburgh
   pbf_url: https://download.geofabrik.de/europe/united-kingdom/scotland-latest.osm.pbf
   country: uk
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, pub, bus_stop, rail_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, pub, greggs, primary_school, secondary_school, station, tram_stop]
   bbox: [-3.45, 55.85, -3.05, 56.00]
 
 - id: barcelona
   name: Barcelona
   pbf_url: https://download.geofabrik.de/europe/spain/cataluna-latest.osm.pbf
   country: es
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, station, tram_stop]
   bbox: [2.03, 41.28, 2.31, 41.50]
 
 - id: porto
   name: Porto
   pbf_url: https://download.geofabrik.de/europe/portugal-latest.osm.pbf
   country: pt
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, station, tram_stop]
   bbox: [-8.72, 41.08, -8.50, 41.24]
 
 - id: lisbon
   name: Lisbon
   pbf_url: https://download.geofabrik.de/europe/portugal-latest.osm.pbf
   country: pt
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, station, tram_stop]
   bbox: [-9.28, 38.66, -9.05, 38.83]
 
 - id: paris
   name: Paris
   pbf_url: https://download.geofabrik.de/europe/france/ile-de-france-latest.osm.pbf
   country: fr
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [2.21, 48.79, 2.48, 48.93]
 
 - id: berlin
   name: Berlin
   pbf_url: https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf
   country: de
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
 
 - id: budapest
   name: Budapest
   pbf_url: https://download.geofabrik.de/europe/hungary-latest.osm.pbf
   country: hu
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [18.92, 47.35, 19.35, 47.62]
 
 - id: istanbul
   name: Istanbul
   pbf_url: https://download.geofabrik.de/europe/turkey-latest.osm.pbf
   country: tr
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, station, tram_stop]
   bbox: [28.55, 40.80, 29.45, 41.25]
 
 - id: vienna
   name: Vienna
   pbf_url: https://download.geofabrik.de/europe/austria-latest.osm.pbf
   country: at
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [16.18, 48.11, 16.58, 48.33]
 
 - id: munich
   name: Munich
   pbf_url: https://download.geofabrik.de/europe/germany/bayern/oberbayern-latest.osm.pbf
   country: de
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [11.36, 48.06, 11.73, 48.25]
 
 - id: new_york
   name: New York
   pbf_url: https://download.geofabrik.de/north-america/us/new-york-latest.osm.pbf
   country: us
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station]
   bbox: [-74.26, 40.49, -73.70, 40.92]
 
 - id: san_francisco
   name: San Francisco
   pbf_url: https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf
   country: us
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, market, secondary_school, station, tram_stop]
   bbox: [-122.53, 37.70, -122.35, 37.84]
   grid_m: 5
 
@@ -145,7 +160,7 @@
   name: Geneva
   pbf_url: https://download.geofabrik.de/europe/switzerland-latest.osm.pbf
   country: ch
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [6.06, 46.15, 6.28, 46.28]
   grid_m: 5
 
@@ -153,7 +168,7 @@
   name: Zurich
   pbf_url: https://download.geofabrik.de/europe/switzerland-latest.osm.pbf
   country: ch
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [8.42, 47.30, 8.65, 47.46]
   grid_m: 5
 
@@ -161,19 +176,19 @@
   name: Milano
   pbf_url: https://download.geofabrik.de/europe/italy/nord-ovest-latest.osm.pbf
   country: it
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, primary_school, secondary_school, station, tram_stop]
   bbox: [9.02, 45.36, 9.31, 45.56]
 
 - id: krakow
   name: Krakow
   pbf_url: https://download.geofabrik.de/europe/poland/malopolskie-latest.osm.pbf
   country: pl
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, market, station, tram_stop]
   bbox: [19.78, 49.97, 20.13, 50.13]
 
 - id: bucharest
   name: Bucharest
   pbf_url: https://download.geofabrik.de/europe/romania-latest.osm.pbf
   country: ro
-  types: [supermarket, grocery, townhall, cafe, bakery, pharmacy, doctors, playground, post_office, market, bus_stop, rail_station, metro_station, tram_stop, transit]
+  types: [supermarket, grocery, bakery, cafe, pharmacy, doctors, playground, post_office, bus_stop, townhall, market, station, tram_stop]
   bbox: [25.96, 44.33, 26.25, 44.55]
