@@ -1,0 +1,64 @@
+# Feature types that define partitions.
+#
+# Each entry produces one network-Voronoi partitioning per city.
+#
+# `match` is a declarative predicate over OSM tags (and optionally location),
+# satisfying match(tags, lat/lng) -> bool:
+#   { key: <tag>, in: [v1, v2] }   tag equals one of the values
+#   { key: <tag>, exists: true }   tag is present with any value
+#   { any: [rule, ...] }           logical OR
+#   { all: [rule, ...] }           logical AND
+#   { not: rule }                  negation
+# Optional top-level `within: [west, south, east, north]` restricts by location.
+
+- id: supermarket
+  name: Supermarkets
+  match: { key: shop, in: [supermarket] }
+
+- id: pub
+  name: Pubs
+  match: { key: amenity, in: [pub, biergarten] }
+
+- id: cafe
+  name: Cafés
+  match: { key: amenity, in: [cafe] }
+
+- id: post_office
+  name: Post offices
+  match: { key: amenity, in: [post_office] }
+
+- id: pharmacy
+  name: Pharmacies
+  match:
+    any:
+      - { key: amenity, in: [pharmacy] }
+      - { key: healthcare, in: [pharmacy] }
+
+- id: doctors
+  name: Doctors
+  match:
+    any:
+      - { key: amenity, in: [doctors, clinic] }
+      - { key: healthcare, in: [doctor, clinic] }
+
+- id: school
+  name: Schools
+  match:
+    all:
+      - { key: amenity, in: [school] }
+      - not: { key: school, in: [driving] }
+
+- id: playground
+  name: Playgrounds
+  match: { key: leisure, in: [playground] }
+
+- id: bus_stop
+  name: Bus stops
+  match: { key: highway, in: [bus_stop] }
+
+- id: station
+  name: Rail & metro stations
+  match:
+    all:
+      - { key: railway, in: [station, halt] }
+      - not: { key: station, in: [miniature] }

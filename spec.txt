@@ -1,0 +1,72 @@
+My initial idea was to make a natural division of aeras in london based on their shortest distance to some important amenity of communal importance, e.g. a pub, grocery store, post office, bus stop, etc.
+
+I want you to make it.
+
+This should be project of two big parts:
+1. Generation of boundaries and distances. This is kinda network Voronoi diagram where the distance metric is walking time.
+2. Visualization of the map
+
+
+Feature generation.
+
+data preparation.
+
+We should be able to define multiple areas, and all the partitining should be done for each area separately.
+Areas should be defined by name, pbf file url and bounding box (optional)
+
+Areas I care about for now:
+London:
+Manchester: https://download.geofabrik.de/europe/united-kingdom/england/greater-manchester.html
+Madrid (find the pbf and define the ounding boxes yoursel)
+Edinburgh
+Barcelona
+Porto
+Lisbon
+Funchal
+Paris
+Berlin
+Budapest
+Istanbul
+Vienna
+Munich
+New York
+San Francisco
+Geneva
+Zurich
+Milano
+Krakow
+Bucharest
+
+This should download some specific area (e.g. London), openstreetmap, pbf, I suggest geofabric https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf then:
+- extract all the walkable paths (e.g. footpaths, roads, but not highways, for example or ferry lines. Also pay attention if there is atag indicating a parth is not walkable),
+- extract all the buildings
+- extract the features: e.g. shop=supermarket, or amenity=doctors or railway=station or highway=bus_stop (definitions of these features by tag grouping should be a separate config). We also extract their names (potentially useful to extract and save all tags of the feature).
+- download the elevation and determine the elevation of each point.
+- define walking time between each point in the graph. There is a formula that calculates the walking time between two points and takes elevation into consideration as well.
+- yes, thiw will be a directional graph. We care about time it takes to walk from each point TO the nearest feature.
+
+Partitioning
+- We need to create a Voronoi partition of a graph where feature points will be the base points. The whole partition can be computed with a single multi-source Dijkstra (or BFS for unweighted graphs) — you initialize the priority queue with all sites at distance 0 and record which site "wins" each vertex. Runs in essentially the same time as one shortest-path computation. Each point in the graph should indicate not only the partition it belongs to but also the walking distance to the base feature of that partition. Metric is time it takes to walk between points. Remember, this is a directed graph, because of elevation.
+- we define the partitions as polygons by creating voronoi diagrams for each point and then unioning the voronoi diagrams of the points from the same partition.
+- we also remember the walking distance from each building polygon to the amenity and which partition it belogns to.
+- We save all this in some efficient geo format. We also create vector tiles for a) buildings and b) areas
+
+We create these paritions for each type of features. We maintain a special config that define those feature types. And we identify those feature types via some function that has tags and lat/lng as input and true/false as output
+
+This has to be somehow very fast, so I leave it to you to decide what language you would use. This will be running on macbook pro M4 24GB RAM, so you can potentially utilize GPU for that as well, if works.
+
+UI:
+This has to be a static html full screen mobile friendly slippy web map that uses free vector basemap and has two way of visualization: 
+- show buildings color coded by partition and also distance to their partition defining feature (some kind of 2d color coding)
+- show partitions
+User should be able to toggle between these two modes.
+User should be able to define which feature type they want to see the partitining based on.
+User also should be able to chose a city
+
+UI also should have a legend, transparency slider, search bar (for features), so we can search for each feature, and then it will center to the area of that feature (zoom)
+
+UI will be hosted on github pages. Entire project is open source and should be comitted to github as well.
+
+Make UI beautiful and stylish.
+
+Plan it and implement this. Ask questions if any.
