@@ -5,12 +5,15 @@ use std::collections::BinaryHeap;
 pub const UNREACHED: u32 = u32::MAX;
 
 /// Multi-source Dijkstra over the reversed graph.
-/// `sites` = (graph node, site id). Returns per node: winning site id and
-/// walking time (deciseconds) from that node to the site.
-pub fn partition(csr: &RevCsr, sites: &[(u32, u32)]) -> (Vec<u32>, Vec<u32>) {
+/// `sites` = (graph node, site id). Returns per node: winning site id,
+/// walking time (deciseconds) from that node to the site, and the NEXT HOP —
+/// the first node on the node's forward walk toward its site
+/// (UNREACHED for site nodes and unreached nodes).
+pub fn partition(csr: &RevCsr, sites: &[(u32, u32)]) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
     let n = csr.n();
     let mut label = vec![UNREACHED; n];
     let mut dist = vec![u32::MAX; n];
+    let mut next_hop = vec![UNREACHED; n];
     let mut heap: BinaryHeap<Reverse<(u32, u32)>> = BinaryHeap::new();
     for &(node, site) in sites {
         if dist[node as usize] > 0 {
@@ -29,11 +32,13 @@ pub fn partition(csr: &RevCsr, sites: &[(u32, u32)]) -> (Vec<u32>, Vec<u32>) {
             if nd < dist[u as usize] {
                 dist[u as usize] = nd;
                 label[u as usize] = l;
+                // reversed arc v→u = forward walking arc u→v
+                next_hop[u as usize] = v;
                 heap.push(Reverse((nd, u)));
             }
         }
     }
-    (label, dist)
+    (label, dist, next_hop)
 }
 
 #[cfg(test)]
@@ -50,12 +55,17 @@ mod tests {
         let segs: Vec<Segment> =
             (0..4).map(|i| Segment { a: i, b: i + 1, steps: false, flat: false }).collect();
         let csr = build_rev_csr(&ll, &elev, &segs);
-        let (label, dist) = partition(&csr, &[(0, 0), (4, 1)]);
+        let (label, dist, next_hop) = partition(&csr, &[(0, 0), (4, 1)]);
         assert_eq!(label[0], 0);
         assert_eq!(label[1], 0);
         assert_eq!(label[3], 1);
         assert_eq!(label[4], 1);
         assert_eq!(dist[0], 0);
         assert!(dist[1] > 0);
+        // next hops walk toward the winning site
+        assert_eq!(next_hop[1], 0);
+        assert_eq!(next_hop[3], 4);
+        assert_eq!(next_hop[0], UNREACHED, "site nodes are terminal");
+        assert_eq!(next_hop[4], UNREACHED);
     }
 }

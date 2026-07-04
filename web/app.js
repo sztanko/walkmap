@@ -289,9 +289,13 @@ function tracePath(lngLat, dirs) {
   if (x < 0 || y < 0 || x >= pg.w || y >= pg.h) return null;
   const pts = [];
   const center = (x, y) => [pg.west + (x + 0.5) * pg.dlng, pg.north - (y + 0.5) * pg.dlat];
+  const visited = new Set();
   for (let i = 0; i < 60000; i++) {
+    const cell = y * pg.w + x;
+    if (visited.has(cell)) break; // safety against degenerate cycles
+    visited.add(cell);
     pts.push(center(x, y));
-    const d = dirs[y * pg.w + x];
+    const d = dirs[cell];
     if (!d) break;
     x += DIRS[d][0];
     y += DIRS[d][1];

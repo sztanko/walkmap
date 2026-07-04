@@ -316,7 +316,7 @@ fn run_city(
         }
 
         // multi-source dijkstra on the reversed graph
-        let (label, dist) = dijkstra::partition(&csr, &seeds);
+        let (label, dist, next_hop) = dijkstra::partition(&csr, &seeds);
         let reached = label.iter().filter(|&&l| l != dijkstra::UNREACHED).count();
 
         // partition polygons + adjacency from the fine grid
@@ -406,7 +406,7 @@ fn run_city(
         output::write_sites_json(&out.join(format!("{}.sites.json", ft.id)), &sites)?;
 
         // walk-path direction raster (coarse grid)
-        let dirs = pg.direction_field(&dist);
+        let dirs = pg.direction_field(&node_ll, &next_hop, &dist);
         output::write_dirs_gz(&out.join(format!("{}.dirs.gz", ft.id)), &dirs)?;
 
         // stats

@@ -75,17 +75,32 @@
       ],
       "id": "london",
       "name": "London",
-      "pathGrid": null,
+      "pathGrid": {
+        "dlat": 0.00018087434659142296,
+        "dlng": 0.0002885439388714387,
+        "h": 2544,
+        "north": 51.72,
+        "w": 3050,
+        "west": -0.53
+      },
       "types": [
         "supermarket",
+        "grocery",
+        "bakery",
+        "market",
         "cafe",
         "pub",
+        "townhall",
         "post_office",
         "pharmacy",
         "doctors",
         "school",
         "playground",
-        "bus_stop"
+        "bus_stop",
+        "rail_station",
+        "metro_station",
+        "tram_stop",
+        "transit"
       ]
     }
   ],

@@ -52,46 +52,95 @@ impl Grid {
         [self.west + x * self.dlng, self.north - y * self.dlat]
     }
 
+    fn cell_of(&self, ll: [f64; 2]) -> (i64, i64) {
+        let x = ((ll[0] - self.west) / self.dlng).floor() as i64;
+        let y = ((self.north - ll[1]) / self.dlat).floor() as i64;
+        (x.clamp(0, self.w as i64 - 1), y.clamp(0, self.h as i64 - 1))
+    }
+
     /// Per-cell walk direction toward the defining feature: 0 = terminal or
-    /// no data, 1–8 = the 8-neighbour (N,NE,E,SE,S,SW,W,NW) with the strictly
-    /// smallest walking time. `node_dist_ds` is the Dijkstra result
-    /// (deciseconds, u32::MAX = unreached). The field descends monotonically,
-    /// terminating at the feature's cells.
-    pub fn direction_field(&self, node_dist_ds: &[u32]) -> Vec<u8> {
+    /// no data, 1–8 = one step (N,NE,E,SE,S,SW,W,NW).
+    ///
+    /// Construction: the Dijkstra shortest-path tree (`next_hop` per node) is
+    /// PAINTED into the raster — a Bresenham line of direction steps from
+    /// every node's cell to its next hop's cell, walked in decreasing-time
+    /// order so cells shared by several streets keep the fastest one. Cells
+    /// not on any street then point one step toward their nearest node's
+    /// cell. (Time-descent per cell dead-ends at road nodes, and
+    /// head-to-your-node rules bounce straight back — the painted tree is
+    /// the only encoding whose traces actually arrive at the site.)
+    pub fn direction_field(&self, node_ll: &[[f64; 2]], next_hop: &[u32], node_dist_ds: &[u32]) -> Vec<u8> {
         let (w, h) = (self.w as usize, self.h as usize);
-        let t: Vec<f32> = self
-            .nearest
-            .par_iter()
-            .zip(self.dist_dm.par_iter())
-            .map(|(&n, &dm)| {
-                if n == NODATA || node_dist_ds[n as usize] == u32::MAX {
-                    f32::INFINITY
-                } else {
-                    node_dist_ds[n as usize] as f32 / 10.0 + dm as f32 / 10.0 / 1.39
-                }
-            })
-            .collect();
-        const NB: [(isize, isize); 8] =
-            [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
         let mut dirs = vec![0u8; w * h];
+        let code = |dx: i64, dy: i64| -> u8 {
+            match (dx, dy) {
+                (0, -1) => 1,
+                (1, -1) => 2,
+                (1, 0) => 3,
+                (1, 1) => 4,
+                (0, 1) => 5,
+                (-1, 1) => 6,
+                (-1, 0) => 7,
+                (-1, -1) => 8,
+                _ => 0,
+            }
+        };
+
+        // paint tree edges, slowest nodes first (fastest overwrite = win)
+        let mut order: Vec<u32> = (0..node_ll.len() as u32)
+            .filter(|&n| node_dist_ds[n as usize] != u32::MAX && next_hop[n as usize] != u32::MAX)
+            .collect();
+        order.sort_unstable_by_key(|&n| std::cmp::Reverse(node_dist_ds[n as usize]));
+        for n in order {
+            let (mut x, mut y) = self.cell_of(node_ll[n as usize]);
+            let (tx, ty) = self.cell_of(node_ll[next_hop[n as usize] as usize]);
+            // 8-connected Bresenham from (x,y) to (tx,ty)
+            let (dx, dy) = ((tx - x).abs(), -(ty - y).abs());
+            let (sx, sy) = ((tx - x).signum(), (ty - y).signum());
+            let mut err = dx + dy;
+            while (x, y) != (tx, ty) {
+                let e2 = 2 * err;
+                let (mut stepx, mut stepy) = (0i64, 0i64);
+                if e2 >= dy {
+                    err += dy;
+                    stepx = sx;
+                }
+                if e2 <= dx {
+                    err += dx;
+                    stepy = sy;
+                }
+                if stepx == 0 && stepy == 0 {
+                    break; // degenerate (same cell)
+                }
+                dirs[y as usize * w + x as usize] = code(stepx, stepy);
+                x += stepx;
+                y += stepy;
+            }
+        }
+
+        // site nodes are terminal — force their cells clear
+        for n in 0..node_ll.len() {
+            if node_dist_ds[n] == 0 {
+                let (x, y) = self.cell_of(node_ll[n]);
+                dirs[y as usize * w + x as usize] = 0;
+            }
+        }
+
+        // off-street cells: one step toward the nearest node's cell
         dirs.par_chunks_mut(w).enumerate().for_each(|(y, row)| {
             for (x, d) in row.iter_mut().enumerate() {
-                let own = t[y * w + x];
-                if !own.is_finite() {
+                if *d != 0 {
                     continue;
                 }
-                let mut best = (own, 0u8);
-                for (i, (dx, dy)) in NB.iter().enumerate() {
-                    let (nx, ny) = (x as isize + dx, y as isize + dy);
-                    if nx < 0 || ny < 0 || nx >= w as isize || ny >= h as isize {
-                        continue;
-                    }
-                    let nt = t[ny as usize * w + nx as usize];
-                    if nt < best.0 {
-                        best = (nt, (i + 1) as u8);
-                    }
+                let n = self.nearest[y * w + x];
+                if n == NODATA || node_dist_ds[n as usize] == u32::MAX || node_dist_ds[n as usize] == 0 {
+                    continue;
                 }
-                *d = best.1;
+                let (tx, ty) = self.cell_of(node_ll[n as usize]);
+                if (tx, ty) == (x as i64, y as i64) {
+                    continue;
+                }
+                *d = code((tx - x as i64).signum(), (ty - y as i64).signum());
             }
         });
         dirs
