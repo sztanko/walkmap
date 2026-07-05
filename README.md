@@ -28,6 +28,11 @@ directed graph, rendered as an interactive vector-tile map.
    read via HTTP range requests by the static MapLibre site in [web/](web/).
    (GitHub Release assets serve no CORS headers, so Pages it is.)
 
+## Development
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design, data flow, and
+hard-won gotchas (read it before extending the pipeline or UI).
+
 ## Running the pipeline
 
 Requirements: Rust (stable), tippecanoe ≥ 2.17, ~2–20 GB disk per city.

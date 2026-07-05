@@ -79,8 +79,6 @@ const LAYERS = [
   "bld-line",
   "sites-dot",
   "sites-label",
-  "walkpath-casing",
-  "walkpath-line",
   "walkpath-arrows",
   "walkpath-end",
 ];
@@ -144,30 +142,8 @@ function addData() {
     before
   );
 
-  // hover walk path (above fills, below labels)
+  // hover walk path: a dense chain of direction arrows (no continuous line)
   map.addSource("walkpath", { type: "geojson", data: EMPTY });
-  map.addLayer(
-    {
-      id: "walkpath-casing",
-      type: "line",
-      source: "walkpath",
-      filter: ["==", "$type", "LineString"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "rgba(255,255,255,0.9)", "line-width": 6, "line-blur": 3 },
-    },
-    before
-  );
-  map.addLayer(
-    {
-      id: "walkpath-line",
-      type: "line",
-      source: "walkpath",
-      filter: ["==", "$type", "LineString"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#6b3a17", "line-width": 2.4 },
-    },
-    before
-  );
   map.addLayer({
     id: "walkpath-arrows",
     type: "symbol",
@@ -175,9 +151,9 @@ function addData() {
     filter: ["==", "$type", "LineString"],
     layout: {
       "symbol-placement": "line",
-      "symbol-spacing": 26,
+      "symbol-spacing": 14,
       "text-field": ">",
-      "text-size": 12,
+      "text-size": 11.5,
       "text-font": ["Noto Sans Bold"],
       "text-keep-upright": false,
       "text-rotation-alignment": "map",
@@ -187,7 +163,7 @@ function addData() {
     paint: {
       "text-color": "#ffffff",
       "text-halo-color": "#6b3a17",
-      "text-halo-width": 1.4,
+      "text-halo-width": 1.6,
     },
   });
   map.addLayer({
@@ -262,7 +238,16 @@ function applyMode() {
     map.setLayoutProperty("bld-line", "visibility", vis(b));
     map.setLayoutProperty("areas-fill", "visibility", vis(!b));
     map.setLayoutProperty("areas-line", "visibility", "visible"); // outlines help in both modes
-    map.setPaintProperty("areas-line", "line-color", b ? "rgba(29,34,51,0.35)" : "rgba(255,255,255,0.85)");
+    if (b) {
+      // buildings mode: distinct dash-dotted catchment borders
+      map.setPaintProperty("areas-line", "line-color", "#0f5c5c");
+      map.setPaintProperty("areas-line", "line-width", ["interpolate", ["linear"], ["zoom"], 8, 0.8, 14, 2.4]);
+      map.setPaintProperty("areas-line", "line-dasharray", ["literal", [2.5, 1.2, 0.4, 1.2]]);
+    } else {
+      map.setPaintProperty("areas-line", "line-color", "rgba(255,255,255,0.85)");
+      map.setPaintProperty("areas-line", "line-width", ["interpolate", ["linear"], ["zoom"], 8, 0.4, 14, 1.6]);
+      map.setPaintProperty("areas-line", "line-dasharray", ["literal", [1, 0]]);
+    }
   }
   els.modeBuildings.classList.toggle("on", b);
   els.modeAreas.classList.toggle("on", !b);
