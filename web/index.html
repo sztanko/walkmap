@@ -35,16 +35,14 @@
       <input id="pathhover" type="checkbox" checked>
       <span>Walk path on hover / tap</span>
     </label>
-    <div id="legend">
-      <div class="swatches">
-        <i style="background:#4e79a7"></i><i style="background:#f28e2b"></i><i style="background:#59a14f"></i><i style="background:#e15759"></i><i style="background:#b07aa1"></i><i style="background:#edc948"></i>
-      </div>
+    <details id="legend" open>
+      <summary>Legend</summary>
       <div class="legend-ramp-note">
         <div class="ramp"></div>
         <div class="ramp-labels"><span>0 min</span><span>15</span><span>30+</span></div>
       </div>
       <p>Each colour is one catchment — the area closest, by walking time (uphill counted), to one <span class="tname">feature</span>. Darker buildings = longer walk.</p>
-    </div>
+    </details>
     <details id="about">
       <summary>About</summary>
       <p>A network Voronoi diagram over the OpenStreetMap walking graph.

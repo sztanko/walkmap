@@ -560,7 +560,10 @@ map.on("moveend", writeHash);
   state.type = state.city.types.includes(h.type) ? h.type : state.city.types[0];
   state.mode = h.mode;
   // hover is pointless on coarse pointers; keep the path for taps only
-  if (!window.matchMedia("(pointer: fine)").matches) els.pathToggle.checked = true;
+  if (!window.matchMedia("(pointer: fine)").matches) {
+    els.pathToggle.checked = true;
+    document.getElementById("legend")?.removeAttribute("open"); // save space on phones
+  }
   fillSelectors();
   map.on("load", async () => {
     await loadSites();

@@ -159,15 +159,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 .pathtoggle input { accent-color: var(--accent); }
 
 #legend { margin-top: 10px; font-size: 12.5px; color: var(--ink-soft); }
+#legend summary { cursor: pointer; font-weight: 600; color: var(--ink); font-size: 13px; margin-bottom: 6px; }
 #legend p { margin: 8px 2px 2px; line-height: 1.45; }
 .tname { font-weight: 600; color: var(--ink); }
-.swatches { display: flex; gap: 4px; margin-bottom: 6px; }
-.swatches i {
-  flex: 1;
-  height: 12px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
 .ramp {
   height: 10px;
   border-radius: 5px;
