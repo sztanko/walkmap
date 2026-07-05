@@ -1,7 +1,6 @@
 use crate::config::{City, FeatureType};
 use crate::osm::Building;
 use anyhow::Result;
-use rayon::prelude::*;
 use std::fmt::Write as FmtWrite;
 use std::io::Write;
 use std::path::Path;
@@ -124,64 +123,57 @@ fn push_ring(s: &mut String, ring: &[[f64; 2]]) {
     s.push(']');
 }
 
-/// Pre-serialized GeoJSON geometry per building, reused across feature types.
-/// rings[0] = outer, rest = holes (courtyards of multipolygon buildings).
-pub fn building_geom_strings(buildings: &[Building]) -> Vec<String> {
-    buildings
-        .par_iter()
-        .map(|b| {
-            let n: usize = b.rings.iter().map(|r| r.len()).sum();
-            let mut s = String::with_capacity(n * 22 + 40);
-            s.push_str("{\"type\":\"Polygon\",\"coordinates\":[");
-            for (i, ring) in b.rings.iter().enumerate() {
-                if i > 0 {
-                    s.push(',');
-                }
-                push_ring(&mut s, ring);
-            }
-            s.push_str("]}");
-            s
-        })
-        .collect()
+fn ring_to_ls(ring: &[[f64; 2]]) -> geo_types::LineString<f64> {
+    let mut pts: Vec<geo_types::Coord<f64>> =
+        ring.iter().map(|p| geo_types::Coord { x: p[0], y: p[1] }).collect();
+    if pts.first() != pts.last() {
+        if let Some(&f) = pts.first() {
+            pts.push(f);
+        }
+    }
+    geo_types::LineString(pts)
 }
 
-/// buildings.geojsonl for one feature type. `pid_t` per building:
-/// None = no partition (skipped), Some((pid, None)) = partition without a
-/// reachable walking time. `colors` maps pid → palette index.
-pub fn write_buildings_geojsonl(
+/// buildings.fgb for one feature type (FlatGeobuf ingests ~3-5x faster than
+/// GeoJSON in tippecanoe). `pid_t` per building: None = no partition
+/// (skipped), Some((pid, None)) = partition without a reachable time.
+pub fn write_buildings_fgb(
     path: &Path,
-    geoms: &[String],
+    buildings: &[Building],
     pid_t: &[Option<(u32, Option<u32>)>],
     colors: &[u8],
 ) -> Result<usize> {
-    let lines: Vec<String> = geoms
-        .par_iter()
-        .zip(pid_t.par_iter())
-        .filter_map(|(g, pt)| {
-            let (pid, t) = (*pt)?;
-            let mut s = String::with_capacity(g.len() + 140);
-            s.push_str("{\"type\":\"Feature\",\"tippecanoe\":{\"layer\":\"buildings\",\"minzoom\":13},\"properties\":{\"pid\":");
-            let _ = write!(s, "{}", pid);
-            match t {
-                Some(t) => {
-                    let _ = write!(s, ",\"t\":{}", t);
-                }
-                None => s.push_str(",\"t\":null"),
+    use flatgeobuf::{ColumnType, FgbWriter, FgbWriterOptions, GeometryType};
+    use geozero::{ColumnValue, PropertyProcessor};
+    let mut fgb = FgbWriter::create_with_options(
+        "buildings",
+        GeometryType::Polygon,
+        FgbWriterOptions { write_index: false, ..Default::default() },
+    )?;
+    fgb.add_column("pid", ColumnType::UInt, |_, col| col.nullable = false);
+    fgb.add_column("t", ColumnType::UInt, |_, col| col.nullable = true);
+    fgb.add_column("c", ColumnType::String, |_, col| col.nullable = false);
+    let mut n = 0usize;
+    for (b, pt) in buildings.iter().zip(pid_t.iter()) {
+        let Some((pid, t)) = *pt else { continue };
+        let poly = geo_types::Polygon::new(
+            ring_to_ls(&b.rings[0]),
+            b.rings[1..].iter().map(|r| ring_to_ls(r)).collect(),
+        );
+        let color = building_color(colors[pid as usize], t);
+        fgb.add_feature_geom(geo_types::Geometry::Polygon(poly), |feat| {
+            feat.property(0, "pid", &ColumnValue::UInt(pid)).unwrap();
+            if let Some(t) = t {
+                feat.property(1, "t", &ColumnValue::UInt(t)).unwrap();
             }
-            let _ = write!(s, ",\"c\":\"{}\"", building_color(colors[pid as usize], t));
-            s.push_str("},\"geometry\":");
-            s.push_str(g);
-            s.push('}');
-            Some(s)
-        })
-        .collect();
-    let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(path)?);
-    for l in &lines {
-        out.write_all(l.as_bytes())?;
-        out.write_all(b"\n")?;
+            feat.property(2, "c", &ColumnValue::String(&color)).unwrap();
+        })?;
+        n += 1;
     }
+    let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(path)?);
+    fgb.write(&mut out)?;
     out.flush()?;
-    Ok(lines.len())
+    Ok(n)
 }
 
 pub struct PartitionOut {
@@ -194,36 +186,42 @@ pub struct PartitionOut {
     pub polys: Vec<Vec<Vec<[f64; 2]>>>,
 }
 
-pub fn write_partitions_geojsonl(path: &Path, parts: &[PartitionOut]) -> Result<()> {
-    let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(path)?);
+pub fn write_partitions_fgb(path: &Path, parts: &[PartitionOut]) -> Result<()> {
+    use flatgeobuf::{ColumnType, FgbWriter, FgbWriterOptions, GeometryType};
+    use geozero::{ColumnValue, PropertyProcessor};
+    let mut fgb = FgbWriter::create_with_options(
+        "partitions",
+        GeometryType::MultiPolygon,
+        FgbWriterOptions { write_index: false, ..Default::default() },
+    )?;
+    fgb.add_column("pid", ColumnType::UInt, |_, col| col.nullable = false);
+    fgb.add_column("name", ColumnType::String, |_, col| col.nullable = false);
+    fgb.add_column("t_max", ColumnType::UInt, |_, col| col.nullable = false);
+    fgb.add_column("c", ColumnType::String, |_, col| col.nullable = false);
     for p in parts {
         if p.polys.is_empty() {
             continue;
         }
-        let mut s = String::with_capacity(4096);
-        s.push_str("{\"type\":\"Feature\",\"tippecanoe\":{\"layer\":\"partitions\"},\"properties\":{\"pid\":");
-        let _ = write!(s, "{}", p.pid);
-        s.push_str(",\"name\":");
-        let _ = write!(s, "{}", serde_json::to_string(&p.name)?);
-        let _ = write!(s, ",\"t_max\":{}", p.t_max_s);
-        let _ = write!(s, ",\"c\":\"{}\"", partition_color(p.color));
-        s.push_str("},\"geometry\":{\"type\":\"MultiPolygon\",\"coordinates\":[");
-        for (i, poly) in p.polys.iter().enumerate() {
-            if i > 0 {
-                s.push(',');
-            }
-            s.push('[');
-            for (j, ring) in poly.iter().enumerate() {
-                if j > 0 {
-                    s.push(',');
-                }
-                push_ring(&mut s, ring);
-            }
-            s.push(']');
-        }
-        s.push_str("]}}\n");
-        out.write_all(s.as_bytes())?;
+        let mp = geo_types::MultiPolygon(
+            p.polys
+                .iter()
+                .map(|rings| {
+                    geo_types::Polygon::new(
+                        ring_to_ls(&rings[0]),
+                        rings[1..].iter().map(|r| ring_to_ls(r)).collect(),
+                    )
+                })
+                .collect(),
+        );
+        fgb.add_feature_geom(geo_types::Geometry::MultiPolygon(mp), |feat| {
+            feat.property(0, "pid", &ColumnValue::UInt(p.pid)).unwrap();
+            feat.property(1, "name", &ColumnValue::String(&p.name)).unwrap();
+            feat.property(2, "t_max", &ColumnValue::UInt(p.t_max_s)).unwrap();
+            feat.property(3, "c", &ColumnValue::String(partition_color(p.color))).unwrap();
+        })?;
     }
+    let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(path)?);
+    fgb.write(&mut out)?;
     out.flush()?;
     Ok(())
 }

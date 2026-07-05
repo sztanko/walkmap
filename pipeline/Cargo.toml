@@ -17,6 +17,9 @@ bincode = "1"
 rustc-hash = "2"
 anyhow = "1"
 flate2 = "1"
+flatgeobuf = "4"
+geo-types = "0.7"
+geozero = "0.14"
 
 [profile.release]
 opt-level = 3

@@ -367,10 +367,8 @@ fn run_city(
             / g.nearest.len() as f64,
     );
 
-    // 8. building geometries (reused across types)
-    let geoms = output::building_geom_strings(&data.buildings);
-
-    // 9. per feature type
+    // 8. per feature type (compute + FGB writes; tiling jobs run in parallel after)
+    let mut tile_jobs: Vec<tiles::TileJob> = Vec::new();
     for &ti in selected {
         let ft = &types[ti];
         let tt = Instant::now();
@@ -492,10 +490,10 @@ fn run_city(
             })
             .collect();
 
-        let part_path = work.join(format!("{}.partitions.geojsonl", ft.id));
-        let bld_path = work.join(format!("{}.buildings.geojsonl", ft.id));
-        output::write_partitions_geojsonl(&part_path, &parts)?;
-        let n_bld = output::write_buildings_geojsonl(&bld_path, &geoms, &pid_t, &colors)?;
+        let part_path = work.join(format!("{}.partitions.fgb", ft.id));
+        let bld_path = work.join(format!("{}.buildings.fgb", ft.id));
+        output::write_partitions_fgb(&part_path, &parts)?;
+        let n_bld = output::write_buildings_fgb(&bld_path, &data.buildings, &pid_t, &colors)?;
         output::write_sites_json(&out.join(format!("{}.sites.json", ft.id)), &sites)?;
 
         // walk-path direction raster (same grid as the area polygons)
@@ -521,18 +519,20 @@ fn run_city(
         );
 
         if !skip_tiles {
-            let tile_path = out.join(format!("{}.pmtiles", ft.id));
-            tiles::tippecanoe(&tile_path, &part_path, &bld_path)?;
-            let _ = std::fs::remove_file(&part_path);
-            let _ = std::fs::remove_file(&bld_path);
-            eprintln!(
-                "[{}] {}: tiles {} MB [total {:.0}s]",
-                city.id,
-                ft.id,
-                std::fs::metadata(&tile_path)?.len() / 1_048_576,
-                tt.elapsed().as_secs_f64()
-            );
+            tile_jobs.push(tiles::TileJob {
+                label: format!("{}/{}", city.id, ft.id),
+                out: out.join(format!("{}.pmtiles", ft.id)),
+                partitions_fgb: part_path,
+                buildings_fgb: bld_path,
+            });
         }
+    }
+
+    if !tile_jobs.is_empty() {
+        let tt = Instant::now();
+        eprintln!("[{}] tiling {} archives ({} in parallel)…", city.id, tile_jobs.len(), tiles::PARALLEL_JOBS);
+        tiles::run_jobs(tile_jobs)?;
+        eprintln!("[{}] tiling done in {:.0}s", city.id, tt.elapsed().as_secs_f64());
     }
 
     // drop outputs of types no longer configured for this city
