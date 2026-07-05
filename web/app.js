@@ -171,7 +171,7 @@ function addData() {
     id: "walkpath-end",
     type: "circle",
     source: "walkpath",
-    filter: ["all", ["==", "$type", "Point"], ["!", ["has", "b"]]],
+    filter: ["all", ["==", "$type", "Point"], ["!has", "b"]],
     paint: {
       "circle-radius": 4.5,
       "circle-color": "#6b3a17",
