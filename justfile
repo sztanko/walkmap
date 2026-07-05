@@ -8,8 +8,13 @@ build:
 run city: build
     ./pipeline/target/release/walkmap run {{city}}
 
-# run both pilot cities
-pilot: (run "funchal") (run "london")
+# rebuild + publish one city (or: just rebuild all)
+rebuild city:
+    ./scripts/rebuild.sh {{city}}
+
+# feature-group research for a city (counts, grouping, spacing verdicts)
+analyze city: build
+    ./pipeline/target/release/walkmap analyze {{city}}
 
 # unit tests
 test:
