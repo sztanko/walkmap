@@ -125,13 +125,20 @@ fn push_ring(s: &mut String, ring: &[[f64; 2]]) {
 }
 
 /// Pre-serialized GeoJSON geometry per building, reused across feature types.
+/// rings[0] = outer, rest = holes (courtyards of multipolygon buildings).
 pub fn building_geom_strings(buildings: &[Building]) -> Vec<String> {
     buildings
         .par_iter()
         .map(|b| {
-            let mut s = String::with_capacity(b.ring.len() * 22 + 40);
+            let n: usize = b.rings.iter().map(|r| r.len()).sum();
+            let mut s = String::with_capacity(n * 22 + 40);
             s.push_str("{\"type\":\"Polygon\",\"coordinates\":[");
-            push_ring(&mut s, &b.ring);
+            for (i, ring) in b.rings.iter().enumerate() {
+                if i > 0 {
+                    s.push(',');
+                }
+                push_ring(&mut s, ring);
+            }
             s.push_str("]}");
             s
         })

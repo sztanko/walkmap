@@ -111,11 +111,16 @@ pub fn resolve_types(city: &City, catalogue: &[FeatureType]) -> Result<Vec<Featu
     Ok(out)
 }
 
+/// Bump when the EXTRACTION CODE changes what lands in CityData (e.g. new
+/// element kinds), so cached extracts from older code are invalidated.
+const EXTRACT_VERSION: u32 = 2; // 2: multipolygon relation buildings + holes
+
 /// Stable hash of a city's resolved feature config — keys the extract cache.
 pub fn types_hash(types: &[FeatureType]) -> u64 {
     use std::hash::Hasher;
     let json = serde_json::to_string(types).expect("feature types serialize");
     let mut h = rustc_hash::FxHasher::default();
+    h.write_u32(EXTRACT_VERSION);
     h.write(json.as_bytes());
     h.finish()
 }

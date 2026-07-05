@@ -15,7 +15,20 @@
   # chain supermarkets: branded, or matching the country's big-chain names
   match: { all: [ { key: shop, in: [supermarket] }, { key: brand, exists: true } ] }
   variants:
-    uk: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [tesco, sainsbury, asda, morrisons, aldi, lidl, waitrose, "marks & spencer", "m&s", co-op, coop, iceland, budgens, "whole foods"] } ] } ] } }
+    uk:
+      match:
+        any:
+          - all:
+              - { key: shop, in: [supermarket] }
+              - any:
+                  - { key: brand, exists: true }
+                  - { key: name, contains: [tesco, sainsbury, asda, morrisons, aldi, lidl, waitrose, "marks & spencer", "m&s", co-op, coop, iceland, budgens, "whole foods"] }
+          # M&S department stores contain a Foodhall — count them
+          - all:
+              - { key: shop, in: [department_store] }
+              - any:
+                  - { key: brand, contains: ["marks & spencer", "m&s"] }
+                  - { key: name, contains: ["marks & spencer", "m&s"] }
     pt: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [continente, "pingo doce", intermarché, intermarche, minipreço, "mini preço", lidl, aldi, spar, auchan, "el corte inglés"] } ] } ] } }
     es: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [mercadona, carrefour, lidl, aldi, alcampo, eroski, ahorramas, "el corte inglés", consum, caprabo, bonpreu, "supercor", "dia"] } ] } ] } }
     fr: { match: { all: [ { key: shop, in: [supermarket] }, { any: [ { key: brand, exists: true }, { key: name, contains: [carrefour, monoprix, franprix, auchan, leclerc, intermarché, casino, lidl, aldi, "super u", picard, "naturalia"] } ] } ] } }

@@ -19,8 +19,8 @@ pub struct Segment {
 
 #[derive(Serialize, Deserialize)]
 pub struct Building {
-    /// outer ring, lng/lat, closed
-    pub ring: Vec<[f64; 2]>,
+    /// rings[0] = outer (lng/lat, closed), rest = holes (courtyards)
+    pub rings: Vec<Vec<[f64; 2]>>,
     pub centroid: [f64; 2],
 }
 
@@ -112,10 +112,18 @@ struct FeatWay {
     name: Option<String>,
 }
 
+/// building=* + type=multipolygon relation (courtyard perimeter blocks etc.)
+struct BldRel {
+    id: i64,
+    outers: Vec<i64>, // member way ids
+    inners: Vec<i64>,
+}
+
 #[derive(Default)]
 struct Pass1 {
     walk: Vec<WalkWay>,
     blds: Vec<(i64, Vec<i64>)>,
+    brels: Vec<BldRel>,
     feats: Vec<FeatWay>,
 }
 
@@ -148,6 +156,49 @@ fn type_mask(types: &[FeatureType], tags: &HashMap<&str, &str>) -> u32 {
         }
     }
     mask
+}
+
+/// Join multipolygon member ways end-to-end (reversing where needed) into
+/// closed rings; unclosable chains are dropped.
+fn stitch_rings(ways: Vec<Vec<i64>>) -> Vec<Vec<i64>> {
+    let mut segs: Vec<Vec<i64>> = ways.into_iter().filter(|w| w.len() >= 2).collect();
+    let mut rings = Vec::new();
+    while let Some(mut cur) = segs.pop() {
+        loop {
+            if cur.first() == cur.last() && cur.len() >= 4 {
+                rings.push(cur);
+                break;
+            }
+            let end = *cur.last().unwrap();
+            match segs
+                .iter()
+                .position(|s| *s.first().unwrap() == end || *s.last().unwrap() == end)
+            {
+                Some(i) => {
+                    let mut nxt = segs.swap_remove(i);
+                    if *nxt.last().unwrap() == end {
+                        nxt.reverse();
+                    }
+                    cur.extend(nxt.into_iter().skip(1));
+                }
+                None => break, // unclosed — drop
+            }
+        }
+    }
+    rings
+}
+
+fn point_in_ring(p: [f64; 2], ring: &[[f64; 2]]) -> bool {
+    let mut inside = false;
+    for i in 0..ring.len() - 1 {
+        let (a, b) = (ring[i], ring[i + 1]);
+        if (a[1] > p[1]) != (b[1] > p[1])
+            && a[0] + (p[1] - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) > p[0]
+        {
+            inside = !inside;
+        }
+    }
+    inside
 }
 
 fn ring_centroid(ring: &[[f64; 2]]) -> [f64; 2] {
@@ -206,6 +257,29 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
                             });
                         }
                     }
+                    for rel in group.relations() {
+                        let tags: HashMap<&str, &str> = rel.tags().collect();
+                        if !is_building(&tags)
+                            || tags.get("type").copied() != Some("multipolygon")
+                        {
+                            continue;
+                        }
+                        let (mut outers, mut inners) = (Vec::new(), Vec::new());
+                        for m in rel.members() {
+                            if m.member_type != osmpbf::RelMemberType::Way {
+                                continue;
+                            }
+                            match m.role() {
+                                Ok("inner") => inners.push(m.member_id),
+                                // empty role is legacy shorthand for outer
+                                Ok("outer") | Ok("") => outers.push(m.member_id),
+                                _ => {}
+                            }
+                        }
+                        if !outers.is_empty() {
+                            acc.brels.push(BldRel { id: rel.id(), outers, inners });
+                        }
+                    }
                 }
             }
             Ok(acc)
@@ -213,6 +287,7 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
         .try_reduce(Pass1::default, |mut a, b| {
             a.walk.extend(b.walk);
             a.blds.extend(b.blds);
+            a.brels.extend(b.brels);
             a.feats.extend(b.feats);
             Ok(a)
         })?;
@@ -221,12 +296,46 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
     // ids (and everything cached against them) are stable across runs
     p1.walk.sort_unstable_by_key(|w| w.id);
     p1.blds.sort_unstable_by_key(|(id, _)| *id);
+    p1.brels.sort_unstable_by_key(|r| r.id);
     p1.feats.sort_unstable_by_key(|f| f.id);
 
+    // member ways of building relations: their refs are collected in an extra
+    // (cheap, ways-only) pass — relation membership isn't knowable while the
+    // way itself streams by. Ways double-mapped with their own building tag
+    // are excluded from way-buildings to avoid duplicate footprints.
+    let member_ids: FxHashSet<i64> =
+        p1.brels.iter().flat_map(|r| r.outers.iter().chain(&r.inners)).copied().collect();
+    let member_refs: FxHashMap<i64, Vec<i64>> = if member_ids.is_empty() {
+        FxHashMap::default()
+    } else {
+        BlobReader::from_path(pbf)?
+            .par_bridge()
+            .map(|blob| -> Result<Vec<(i64, Vec<i64>)>> {
+                let mut acc = Vec::new();
+                if let BlobDecode::OsmData(block) = blob?.decode()? {
+                    for group in block.groups() {
+                        for way in group.ways() {
+                            if member_ids.contains(&way.id()) {
+                                acc.push((way.id(), way.refs().collect()));
+                            }
+                        }
+                    }
+                }
+                Ok(acc)
+            })
+            .try_reduce(Vec::new, |mut a, b| {
+                a.extend(b);
+                Ok(a)
+            })?
+            .into_iter()
+            .collect()
+    };
+
     eprintln!(
-        "  pass1: {} walkable ways, {} buildings, {} feature ways",
+        "  pass1: {} walkable ways, {} buildings, {} building relations, {} feature ways",
         p1.walk.len(),
         p1.blds.len(),
+        p1.brels.len(),
         p1.feats.len()
     );
 
@@ -236,6 +345,9 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
     }
     for (_, b) in &p1.blds {
         needed.extend(b);
+    }
+    for refs in member_refs.values() {
+        needed.extend(refs);
     }
     for f in &p1.feats {
         needed.extend(&f.refs);
@@ -346,11 +458,14 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
     }
     drop(compact);
 
-    // ---- buildings ----
-    let buildings: Vec<Building> = p1
+    // ---- buildings (simple ways) ----
+    let mut buildings: Vec<Building> = p1
         .blds
         .par_iter()
-        .filter_map(|(_, refs)| {
+        .filter_map(|(id, refs)| {
+            if member_ids.contains(id) {
+                return None; // double-mapped: the relation will provide it
+            }
             let mut ring: Vec<[f64; 2]> = Vec::with_capacity(refs.len());
             for r in refs {
                 ring.push(*coords.get(r)?); // any missing node → skip building
@@ -359,9 +474,41 @@ pub fn extract(pbf: &Path, city: &City, types: &[FeatureType]) -> Result<CityDat
                 return None;
             }
             let centroid = ring_centroid(&ring);
-            in_bbox(bbox, centroid[0], centroid[1]).then_some(Building { ring, centroid })
+            in_bbox(bbox, centroid[0], centroid[1])
+                .then_some(Building { rings: vec![ring], centroid })
         })
         .collect();
+
+    // ---- buildings (multipolygon relations: stitched rings + courtyards) ----
+    for rel in &p1.brels {
+        let rings_of = |ids: &[i64]| -> Vec<Vec<[f64; 2]>> {
+            let segs: Vec<Vec<i64>> =
+                ids.iter().filter_map(|id| member_refs.get(id).cloned()).collect();
+            stitch_rings(segs)
+                .iter()
+                .filter_map(|ring| {
+                    let pts: Option<Vec<[f64; 2]>> =
+                        ring.iter().map(|r| coords.get(r).copied()).collect();
+                    pts.filter(|p| p.len() >= 4) // bbox-clipped rings are dropped
+                })
+                .collect()
+        };
+        let outers = rings_of(&rel.outers);
+        let inners = rings_of(&rel.inners);
+        for outer in outers {
+            let centroid = ring_centroid(&outer);
+            if !in_bbox(bbox, centroid[0], centroid[1]) {
+                continue;
+            }
+            let mut rings = vec![outer];
+            for hole in &inners {
+                if point_in_ring(hole[0], &rings[0]) {
+                    rings.push(hole.clone());
+                }
+            }
+            buildings.push(Building { rings, centroid });
+        }
+    }
 
     // ---- features per type ----
     let mut features: Vec<Vec<Feat>> = vec![Vec::new(); types.len()];
@@ -410,6 +557,28 @@ mod tests {
 
     fn t<'a>(kv: &[(&'a str, &'a str)]) -> HashMap<&'a str, &'a str> {
         kv.iter().copied().collect()
+    }
+
+    #[test]
+    fn stitch_split_rings() {
+        // ring split into three ways, one reversed
+        let ways = vec![vec![1, 2, 3], vec![5, 4, 3], vec![5, 6, 1]];
+        let rings = stitch_rings(ways);
+        assert_eq!(rings.len(), 1);
+        let r = &rings[0];
+        assert_eq!(r.first(), r.last());
+        assert_eq!(r.len(), 7); // 6 unique nodes + closing repeat
+        // already-closed way passes through; unclosable chain is dropped
+        let rings = stitch_rings(vec![vec![1, 2, 3, 1], vec![7, 8, 9]]);
+        assert_eq!(rings.len(), 1);
+        assert_eq!(rings[0], vec![1, 2, 3, 1]);
+    }
+
+    #[test]
+    fn hole_containment() {
+        let outer = vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0], [0.0, 0.0]];
+        assert!(point_in_ring([5.0, 5.0], &outer));
+        assert!(!point_in_ring([15.0, 5.0], &outer));
     }
 
     #[test]
