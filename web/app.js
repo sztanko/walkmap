@@ -400,7 +400,8 @@ async function switchData(fit) {
 }
 
 function fillSelectors() {
-  els.city.innerHTML = state.manifest.cities
+  els.city.innerHTML = [...state.manifest.cities]
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map((c) => `<option value="${c.id}"${c.id === state.city.id ? " selected" : ""}>${c.name}</option>`)
     .join("");
   els.ftype.innerHTML = state.manifest.types
