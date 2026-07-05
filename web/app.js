@@ -142,35 +142,36 @@ function addData() {
     before
   );
 
-  // hover walk path: a dense chain of direction arrows (no continuous line)
+  // hover walk path: a dense chain of direction arrows, placed manually as
+  // rotated point symbols (MapLibre's line placement rejects most anchors on
+  // wiggly traces via text-max-angle, however configured)
   map.addSource("walkpath", { type: "geojson", data: EMPTY });
   map.addLayer({
     id: "walkpath-arrows",
     type: "symbol",
     source: "walkpath",
-    filter: ["==", "$type", "LineString"],
+    filter: ["has", "b"],
     layout: {
-      "symbol-placement": "line",
-      "symbol-spacing": 14,
-      "text-field": ">",
-      "text-size": 11.5,
+      "text-field": "»",
+      "text-size": 13,
       "text-font": ["Noto Sans Bold"],
-      "text-keep-upright": false,
+      "text-rotate": ["get", "b"],
       "text-rotation-alignment": "map",
       "text-allow-overlap": true,
       "text-ignore-placement": true,
+      "text-padding": 0,
     },
     paint: {
-      "text-color": "#ffffff",
-      "text-halo-color": "#6b3a17",
-      "text-halo-width": 1.6,
+      "text-color": "#6b3a17",
+      "text-halo-color": "rgba(255,255,255,0.9)",
+      "text-halo-width": 0.8,
     },
   });
   map.addLayer({
     id: "walkpath-end",
     type: "circle",
     source: "walkpath",
-    filter: ["==", "$type", "Point"],
+    filter: ["all", ["==", "$type", "Point"], ["!", ["has", "b"]]],
     paint: {
       "circle-radius": 4.5,
       "circle-color": "#6b3a17",
@@ -323,6 +324,44 @@ function tracePath(lngLat, dirs) {
   return sm;
 }
 
+/// arrows every ~12m along the trace, each rotated to its local bearing
+function pathToArrows(line) {
+  const SPACING_M = 12;
+  const features = [];
+  const kx = 111320 * Math.cos((line[0][1] * Math.PI) / 180);
+  let acc = SPACING_M; // place one right at the start
+  for (let i = 0; i < line.length - 1; i++) {
+    const [a, b] = [line[i], line[i + 1]];
+    const dx = (b[0] - a[0]) * kx;
+    const dy = (b[1] - a[1]) * 110574;
+    const seg = Math.hypot(dx, dy);
+    if (seg < 1e-9) continue;
+    // "»" points east at rotation 0; text-rotate is clockwise
+    const rot = (Math.atan2(-dy, dx) * 180) / Math.PI;
+    acc += seg;
+    while (acc >= SPACING_M) {
+      acc -= SPACING_M;
+      const t = 1 - acc / seg;
+      if (t >= 0 && t <= 1) {
+        features.push({
+          type: "Feature",
+          properties: { b: rot },
+          geometry: {
+            type: "Point",
+            coordinates: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t],
+          },
+        });
+      }
+    }
+  }
+  features.push({
+    type: "Feature",
+    properties: {},
+    geometry: { type: "Point", coordinates: line[line.length - 1] },
+  });
+  return { type: "FeatureCollection", features };
+}
+
 let pathBusy = false;
 async function showPath(lngLat) {
   if (!els.pathToggle.checked || !map.getSource("walkpath")) return;
@@ -333,17 +372,7 @@ async function showPath(lngLat) {
     const line = tracePath(lngLat, dirs);
     const src = map.getSource("walkpath");
     if (!src) return;
-    src.setData(
-      line
-        ? {
-            type: "FeatureCollection",
-            features: [
-              { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: line } },
-              { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: line[line.length - 1] } },
-            ],
-          }
-        : EMPTY
-    );
+    src.setData(line ? pathToArrows(line) : EMPTY);
   } catch {
     /* raster missing — silently no path */
   } finally {
