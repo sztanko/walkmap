@@ -242,12 +242,19 @@ groups only" (e.g. Calheta has 1 supermarket → skip; London Greggs = 192 shops
     jobs (tiles::run_jobs) cut London 862s → 283s. FGB input also beats
     GeoJSON parse time. Beware: scripts must `cargo build --release`
     explicitly (`cargo test` does not reliably refresh the binary — see #6).
-20. **Bespoke MVT encoder benchmark** (`walkmap bench-mvt <city>`,
-    src/mvtbench.rs): London buildings z12–15 in **0.8s** vs tippecanoe's
-    41s on identical FGB input (~50×; expect ~10–20× after adding real
-    size-enforcement/dropping). Worth productionizing only if re-bake
-    frequency or city count grows dramatically; the geometry-shared-across-
-    15-types trick would multiply the win further.
+20. **Bespoke MVT encoder — benchmarked, then productionized.** The
+    benchmark (`walkmap bench-mvt`, src/mvtbench.rs) showed 0.8s vs
+    tippecanoe's 41s for London buildings. The production hybrid (mvt.rs +
+    pmt.rs, wired in tiles.rs) now encodes the buildings layer bespoke —
+    geometry clipped/encoded ONCE per city and per-type attributes stamped
+    over cached buffers — while tippecanoe keeps the partitions layer
+    (shared-border simplification) and tile-join merges. Size management:
+    area-ranked largest-first prefix per tile under a 500KB raw budget +
+    sub-pixel speck culling (MIN_QUANT_AREA); tile buffer 8 units (128 bloats
+    archives ~8%). Attribute values MUST be MVT int_value (field 4) —
+    tile-join coerces uint_value to string. PMTiles writer is root-dir-only
+    (fine for readers and tile-join). Net: London full run 862s → **77s**;
+    whole 24-city fleet re-bake ≈ 12 min of compute.
 21. **MapLibre filter dialects don't mix**: `"$type"` forces legacy grammar
     where negation is `"!has"`, not `["!", ["has", …]]` — mixing throws at
     addLayer and silently kills every layer added after it in the same
