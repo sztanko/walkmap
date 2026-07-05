@@ -1,5 +1,6 @@
 mod config;
 mod dijkstra;
+mod mvtbench;
 mod elevation;
 mod graph;
 mod grid;
@@ -55,6 +56,8 @@ enum Cmd {
     /// Count candidate features for EVERY catalogue type in a city —
     /// research input for choosing which groups make sense there
     Analyze { city: String },
+    /// EXPERIMENT: benchmark a bespoke MVT encoder on a city's buildings
+    BenchMvt { city: String },
 }
 
 fn find_root(start: &Path) -> Result<PathBuf> {
@@ -121,6 +124,20 @@ fn main() -> Result<()> {
                 .find(|c| c.id == city)
                 .with_context(|| format!("unknown city '{city}'"))?;
             analyze_city(&root, city, &catalogue)?;
+        }
+        Cmd::BenchMvt { city } => {
+            let city = cities
+                .iter()
+                .find(|c| c.id == city)
+                .with_context(|| format!("unknown city '{city}'"))?;
+            let types = config::resolve_types(city, &catalogue)?;
+            let cache = root
+                .join("data/work")
+                .join(&city.id)
+                .join(format!("extract_{:016x}.bin", config::types_hash(&types)));
+            let data = load_cache::<osm::CityData>(&cache, |_| true)
+                .context("no cached extract — run the city first")?;
+            mvtbench::bench(&data.buildings)?;
         }
     }
     Ok(())
