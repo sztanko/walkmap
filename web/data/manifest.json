@@ -93,6 +93,723 @@
         "bus_stop",
         "station"
       ]
+    },
+    {
+      "bbox": [
+        4.72,
+        52.26998,
+        5.08005,
+        52.44
+      ],
+      "id": "amsterdam",
+      "name": "Amsterdam",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00014707913561650502,
+        "h": 1880,
+        "north": 52.44,
+        "w": 2448,
+        "west": 4.72
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        4.58,
+        52.32998,
+        4.70002,
+        52.44
+      ],
+      "id": "haarlem",
+      "name": "Haarlem",
+      "pathGrid": {
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.0000735895307133842,
+        "h": 2433,
+        "north": 52.44,
+        "w": 1631,
+        "west": 4.58
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "cafe",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "playground",
+        "bus_stop",
+        "station"
+      ]
+    },
+    {
+      "bbox": [
+        -2.74257,
+        53.32496,
+        -1.88338,
+        53.69313
+      ],
+      "id": "manchester",
+      "name": "Manchester",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00015105394178655305,
+        "h": 4071,
+        "north": 53.6931291,
+        "w": 5688,
+        "west": -2.7425702000000003
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "pub",
+        "greggs",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -3.89,
+        40.30999,
+        -3.50994,
+        40.57
+      ],
+      "id": "madrid",
+      "name": "Madrid",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00011803023434213036,
+        "h": 2875,
+        "north": 40.57,
+        "w": 3220,
+        "west": -3.89
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station"
+      ]
+    },
+    {
+      "bbox": [
+        -3.45,
+        55.84996,
+        -3.04997,
+        56.0
+      ],
+      "id": "edinburgh",
+      "name": "Edinburgh",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001603332212684831,
+        "h": 1659,
+        "north": 56.0,
+        "w": 2495,
+        "west": -3.45
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "cafe",
+        "pub",
+        "greggs",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        2.03,
+        41.27997,
+        2.31007,
+        41.5
+      ],
+      "id": "barcelona",
+      "name": "Barcelona",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001197386656238683,
+        "h": 2433,
+        "north": 41.5,
+        "w": 2339,
+        "west": 2.03
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -8.72,
+        41.07993,
+        -8.49998,
+        41.24
+      ],
+      "id": "porto",
+      "name": "Porto",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00011931750677289208,
+        "h": 1770,
+        "north": 41.24,
+        "w": 1844,
+        "west": -8.72
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -9.28,
+        38.65998,
+        -9.04999,
+        38.83
+      ],
+      "id": "lisbon",
+      "name": "Lisbon",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001151770916984348,
+        "h": 1880,
+        "north": 38.83,
+        "w": 1997,
+        "west": -9.28
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        2.21,
+        48.78991,
+        2.48008,
+        48.93
+      ],
+      "id": "paris",
+      "name": "Paris",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001365419630121243,
+        "h": 1549,
+        "north": 48.93,
+        "w": 1978,
+        "west": 2.21
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        13.06413,
+        52.33147,
+        13.76455,
+        52.67938
+      ],
+      "id": "berlin",
+      "name": "Berlin",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00014758198939647277,
+        "h": 3847,
+        "north": 52.679381500000005,
+        "w": 4746,
+        "west": 13.0641294
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        18.92,
+        47.34995,
+        19.35002,
+        47.62
+      ],
+      "id": "budapest",
+      "name": "Budapest",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001329288994924725,
+        "h": 2986,
+        "north": 47.62,
+        "w": 3235,
+        "west": 18.92
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        28.55,
+        40.79998,
+        29.45007,
+        41.25
+      ],
+      "id": "istanbul",
+      "name": "Istanbul",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00011907257320291542,
+        "h": 4976,
+        "north": 41.25,
+        "w": 7559,
+        "west": 28.55
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        16.18,
+        48.10997,
+        16.58003,
+        48.33
+      ],
+      "id": "vienna",
+      "name": "Vienna",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00013482645115197602,
+        "h": 2433,
+        "north": 48.33,
+        "w": 2967,
+        "west": 16.18
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        11.36,
+        48.05999,
+        11.73003,
+        48.25
+      ],
+      "id": "munich",
+      "name": "Munich",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00013465556288940915,
+        "h": 2101,
+        "north": 48.25,
+        "w": 2748,
+        "west": 11.36
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        -74.26,
+        40.48997,
+        -73.69998,
+        40.92
+      ],
+      "id": "new_york",
+      "name": "New York",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.0001184986048928844,
+        "h": 4755,
+        "north": 40.92,
+        "w": 4726,
+        "west": -74.26
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station"
+      ]
+    },
+    {
+      "bbox": [
+        -122.53,
+        37.69996,
+        -122.34999,
+        37.84
+      ],
+      "id": "san_francisco",
+      "name": "San Francisco",
+      "pathGrid": {
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.00005682091410238505,
+        "h": 3097,
+        "north": 37.84,
+        "w": 3168,
+        "west": -122.53
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        6.06,
+        46.15,
+        6.28005,
+        46.28
+      ],
+      "id": "geneva",
+      "name": "Geneva",
+      "pathGrid": {
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.00006491117353449144,
+        "h": 2875,
+        "north": 46.28,
+        "w": 3390,
+        "west": 6.06
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        8.42,
+        47.29997,
+        8.65004,
+        47.46
+      ],
+      "id": "zurich",
+      "name": "Zurich",
+      "pathGrid": {
+        "dlat": 0.000045218586647855734,
+        "dlng": 0.00006633197179078956,
+        "h": 3539,
+        "north": 47.46,
+        "w": 3468,
+        "west": 8.42
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        9.02,
+        45.35995,
+        9.31008,
+        45.56
+      ],
+      "id": "milano",
+      "name": "Milano",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00012807273503502323,
+        "h": 2212,
+        "north": 45.56,
+        "w": 2265,
+        "west": 9.02
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "primary_school",
+        "secondary_school",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        19.78,
+        49.96993,
+        20.13002,
+        50.13
+      ],
+      "id": "krakow",
+      "name": "Krakow",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00013989795718136172,
+        "h": 1770,
+        "north": 50.13,
+        "w": 2502,
+        "west": 19.78
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
+    },
+    {
+      "bbox": [
+        25.96,
+        44.32997,
+        26.25001,
+        44.55
+      ],
+      "id": "bucharest",
+      "name": "Bucharest",
+      "pathGrid": {
+        "dlat": 0.00009043717329571148,
+        "dlng": 0.00012581670094754288,
+        "h": 2433,
+        "north": 44.55,
+        "w": 2305,
+        "west": 25.96
+      },
+      "types": [
+        "supermarket",
+        "grocery",
+        "bakery",
+        "market",
+        "cafe",
+        "townhall",
+        "post_office",
+        "pharmacy",
+        "doctors",
+        "playground",
+        "bus_stop",
+        "station",
+        "tram_stop"
+      ]
     }
   ],
   "dataUrlTemplate": "https://sztanko.github.io/walkmap-data-{city}/",
@@ -178,5 +895,5 @@
       "name": "Public transport (any)"
     }
   ],
-  "v": 1783191057
+  "v": 1783238322
 }
