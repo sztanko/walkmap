@@ -13,6 +13,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 mkdir -p data/logs
+# non-interactive shells often lack the rustup shims
+export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/rustup/bin:$PATH"
+command -v cargo >/dev/null || { echo "ERROR: cargo not found on PATH"; exit 127; }
 
 PUBLISH=1
 MODE=run
