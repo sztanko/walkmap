@@ -324,9 +324,12 @@ function tracePath(lngLat, dirs) {
   return sm;
 }
 
-/// arrows every ~12m along the trace, each rotated to its local bearing
+/// arrows along the trace at a constant ~10px screen gap (zoom-dependent
+/// ground spacing), each rotated to its local bearing
 function pathToArrows(line) {
-  const SPACING_M = 12;
+  const lat = line[0][1];
+  const metersPerPx = (156543.03 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, map.getZoom());
+  const SPACING_M = Math.max(6, 10 * metersPerPx);
   const features = [];
   const kx = 111320 * Math.cos((line[0][1] * Math.PI) / 180);
   let acc = SPACING_M; // place one right at the start
@@ -363,6 +366,7 @@ function pathToArrows(line) {
 }
 
 let pathBusy = false;
+let lastLine = null;
 async function showPath(lngLat) {
   if (!els.pathToggle.checked || !map.getSource("walkpath")) return;
   if (pathBusy) return;
@@ -372,6 +376,7 @@ async function showPath(lngLat) {
     const line = tracePath(lngLat, dirs);
     const src = map.getSource("walkpath");
     if (!src) return;
+    lastLine = line;
     src.setData(line ? pathToArrows(line) : EMPTY);
   } catch {
     /* raster missing — silently no path */
@@ -380,8 +385,16 @@ async function showPath(lngLat) {
   }
 }
 function clearPath() {
+  lastLine = null;
   map.getSource("walkpath")?.setData(EMPTY);
 }
+
+// keep the on-screen arrow gap constant: re-space after zoom changes
+map.on("zoomend", () => {
+  if (lastLine && els.pathToggle.checked) {
+    map.getSource("walkpath")?.setData(pathToArrows(lastLine));
+  }
+});
 
 // tracing is cheap (a few hundred array hops + one setData), so a leading
 // 40ms throttle keeps the path glued to the cursor
