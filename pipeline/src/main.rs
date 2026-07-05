@@ -1,6 +1,8 @@
 mod config;
 mod dijkstra;
+mod mvt;
 mod mvtbench;
+mod pmt;
 mod elevation;
 mod graph;
 mod grid;
@@ -386,6 +388,7 @@ fn run_city(
 
     // 8. per feature type (compute + FGB writes; tiling jobs run in parallel after)
     let mut tile_jobs: Vec<tiles::TileJob> = Vec::new();
+    let mut type_attrs: Vec<mvt::TypeAttrs> = Vec::new();
     for &ti in selected {
         let ft = &types[ti];
         let tt = Instant::now();
@@ -508,9 +511,8 @@ fn run_city(
             .collect();
 
         let part_path = work.join(format!("{}.partitions.fgb", ft.id));
-        let bld_path = work.join(format!("{}.buildings.fgb", ft.id));
         output::write_partitions_fgb(&part_path, &parts)?;
-        let n_bld = output::write_buildings_fgb(&bld_path, &data.buildings, &pid_t, &colors)?;
+        let n_bld = pid_t.iter().flatten().count();
         output::write_sites_json(&out.join(format!("{}.sites.json", ft.id)), &sites)?;
 
         // walk-path direction raster (same grid as the area polygons)
@@ -540,14 +542,23 @@ fn run_city(
                 label: format!("{}/{}", city.id, ft.id),
                 out: out.join(format!("{}.pmtiles", ft.id)),
                 partitions_fgb: part_path,
-                buildings_fgb: bld_path,
+                buildings_pmtiles: work.join(format!("{}.blds.pmtiles", ft.id)),
             });
+            type_attrs.push(mvt::TypeAttrs { id: ft.id.clone(), pid_t, colors });
         }
     }
 
     if !tile_jobs.is_empty() {
         let tt = Instant::now();
-        eprintln!("[{}] tiling {} archives ({} in parallel)…", city.id, tile_jobs.len(), tiles::PARALLEL_JOBS);
+        eprintln!("[{}] encoding buildings (bespoke MVT, {} types)…", city.id, type_attrs.len());
+        mvt::build_buildings_archives(&data.buildings, &type_attrs, &work, g.bbox())?;
+        eprintln!(
+            "[{}] buildings encoded in {:.0}s; tiling {} partition archives ({} in parallel)…",
+            city.id,
+            tt.elapsed().as_secs_f64(),
+            tile_jobs.len(),
+            tiles::PARALLEL_JOBS
+        );
         tiles::run_jobs(tile_jobs)?;
         eprintln!("[{}] tiling done in {:.0}s", city.id, tt.elapsed().as_secs_f64());
     }

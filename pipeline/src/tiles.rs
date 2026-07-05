@@ -6,14 +6,14 @@ use std::process::Command;
 /// Concurrent tippecanoe jobs. Each job is one feature type's archive.
 pub const PARALLEL_JOBS: usize = 8;
 
-/// FlatGeobuf can't carry per-feature `tippecanoe` objects (the GeoJSON trick
-/// for per-layer zoom ranges), so partitions (z7+) and buildings (z12+) are
-/// tiled in separate runs and merged with tile-join.
+/// Partitions are tiled by tippecanoe (shared-border simplification is worth
+/// keeping); buildings arrive as a pre-built bespoke archive (mvt.rs);
+/// tile-join merges the two.
 pub struct TileJob {
     pub label: String,
     pub out: PathBuf,
     pub partitions_fgb: PathBuf,
-    pub buildings_fgb: PathBuf,
+    pub buildings_pmtiles: PathBuf,
 }
 
 fn run(cmd: &mut Command) -> Result<()> {
@@ -31,7 +31,6 @@ fn run(cmd: &mut Command) -> Result<()> {
 
 fn run_one(j: &TileJob) -> Result<()> {
     let parts_tmp = j.out.with_extension("parts.pmtiles");
-    let blds_tmp = j.out.with_extension("blds.pmtiles");
     run(Command::new("tippecanoe")
         .arg("-o")
         .arg(&parts_tmp)
@@ -47,27 +46,13 @@ fn run_one(j: &TileJob) -> Result<()> {
             "--tiny-polygon-size=4",
         ])
         .arg(&j.partitions_fgb))?;
-    run(Command::new("tippecanoe")
-        .arg("-o")
-        .arg(&blds_tmp)
-        .args([
-            "--force",
-            "--quiet",
-            "-l",
-            "buildings",
-            "-Z12",
-            "-z15",
-            "--drop-densest-as-needed",
-            "--tiny-polygon-size=4",
-        ])
-        .arg(&j.buildings_fgb))?;
     run(Command::new("tile-join")
         .arg("-o")
         .arg(&j.out)
         .args(["--force", "--quiet", "-pk"]) // components already size-limited
         .arg(&parts_tmp)
-        .arg(&blds_tmp))?;
-    for f in [&parts_tmp, &blds_tmp, &j.partitions_fgb, &j.buildings_fgb] {
+        .arg(&j.buildings_pmtiles))?;
+    for f in [&parts_tmp, &j.partitions_fgb, &j.buildings_pmtiles] {
         let _ = std::fs::remove_file(f);
     }
     eprintln!(

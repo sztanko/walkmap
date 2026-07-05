@@ -134,48 +134,6 @@ fn ring_to_ls(ring: &[[f64; 2]]) -> geo_types::LineString<f64> {
     geo_types::LineString(pts)
 }
 
-/// buildings.fgb for one feature type (FlatGeobuf ingests ~3-5x faster than
-/// GeoJSON in tippecanoe). `pid_t` per building: None = no partition
-/// (skipped), Some((pid, None)) = partition without a reachable time.
-pub fn write_buildings_fgb(
-    path: &Path,
-    buildings: &[Building],
-    pid_t: &[Option<(u32, Option<u32>)>],
-    colors: &[u8],
-) -> Result<usize> {
-    use flatgeobuf::{ColumnType, FgbWriter, FgbWriterOptions, GeometryType};
-    use geozero::{ColumnValue, PropertyProcessor};
-    let mut fgb = FgbWriter::create_with_options(
-        "buildings",
-        GeometryType::Polygon,
-        FgbWriterOptions { write_index: false, ..Default::default() },
-    )?;
-    fgb.add_column("pid", ColumnType::UInt, |_, col| col.nullable = false);
-    fgb.add_column("t", ColumnType::UInt, |_, col| col.nullable = true);
-    fgb.add_column("c", ColumnType::String, |_, col| col.nullable = false);
-    let mut n = 0usize;
-    for (b, pt) in buildings.iter().zip(pid_t.iter()) {
-        let Some((pid, t)) = *pt else { continue };
-        let poly = geo_types::Polygon::new(
-            ring_to_ls(&b.rings[0]),
-            b.rings[1..].iter().map(|r| ring_to_ls(r)).collect(),
-        );
-        let color = building_color(colors[pid as usize], t);
-        fgb.add_feature_geom(geo_types::Geometry::Polygon(poly), |feat| {
-            feat.property(0, "pid", &ColumnValue::UInt(pid)).unwrap();
-            if let Some(t) = t {
-                feat.property(1, "t", &ColumnValue::UInt(t)).unwrap();
-            }
-            feat.property(2, "c", &ColumnValue::String(&color)).unwrap();
-        })?;
-        n += 1;
-    }
-    let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(path)?);
-    fgb.write(&mut out)?;
-    out.flush()?;
-    Ok(n)
-}
-
 pub struct PartitionOut {
     pub pid: u32,
     pub name: String,
