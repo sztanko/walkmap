@@ -224,6 +224,42 @@ groups only" (e.g. Calheta has 1 supermarket → skip; London Greggs = 192 shops
 16. **Grouping stops by name**: only merge features ≤100m apart with equal or
     prefix-normalized names; never merge unnamed. London: 19,203 bus stops →
     12,887 sites (6,146 directional pairs merged).
+17. **Multipolygon buildings need a relation pass**: `type=multipolygon` +
+    `building=*` relations (courtyard perimeter blocks — dominant in old
+    European centres) carry the tag on the RELATION; member ways are untagged.
+    Extraction reads relations, fetches member-way refs in an extra ways-only
+    pass, stitches split ways into rings (`osm::stitch_rings`), nests inner
+    rings as holes, and skips double-mapped member ways. Cache invalidation
+    for extraction-code changes = `EXTRACT_VERSION` salt in `types_hash`.
+18. **FlatGeobuf can't carry per-feature `tippecanoe` objects** (the GeoJSON
+    trick for per-layer zoom ranges in one run). Solution: tile partitions
+    (z7–15) and buildings (z12–15) in separate runs, merge with
+    `tile-join -pk`, and pass `-l <layer>` explicitly — tippecanoe otherwise
+    names FGB layers after the input FILENAME. Note: tile-join recomputes
+    tilestats from tiles, so feature counts look ~4× inflated (zoom
+    duplicates) — cosmetic.
+19. **Tiling is embarrassingly parallel across feature types** — 8 concurrent
+    jobs (tiles::run_jobs) cut London 862s → 283s. FGB input also beats
+    GeoJSON parse time. Beware: scripts must `cargo build --release`
+    explicitly (`cargo test` does not reliably refresh the binary — see #6).
+20. **Bespoke MVT encoder benchmark** (`walkmap bench-mvt <city>`,
+    src/mvtbench.rs): London buildings z12–15 in **0.8s** vs tippecanoe's
+    41s on identical FGB input (~50×; expect ~10–20× after adding real
+    size-enforcement/dropping). Worth productionizing only if re-bake
+    frequency or city count grows dramatically; the geometry-shared-across-
+    15-types trick would multiply the win further.
+21. **MapLibre filter dialects don't mix**: `"$type"` forces legacy grammar
+    where negation is `"!has"`, not `["!", ["has", …]]` — mixing throws at
+    addLayer and silently kills every layer added after it in the same
+    function. Also: line-placed symbols reject most anchors on wiggly traces
+    regardless of `text-max-angle`; the walk-path arrows are therefore placed
+    manually as bearing-rotated point symbols, re-spaced on `zoomend` for a
+    constant ~10px screen gap. Glyph availability matters too: `›` is tofu in
+    the basemap font stack, `»` (Latin-1) is safe.
+22. **GitHub Pages wedged builds recur** (status "building", duration 0,
+    hours). After every fleet publish, sweep all data repos and POST
+    `/pages/builds` for any stuck ones; verify freshness by fetching a
+    sites.json with a cache-busting query and comparing counts to local.
 
 ## Performance (M4 Pro, 24GB)
 
